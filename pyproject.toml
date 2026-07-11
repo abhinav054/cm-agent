@@ -1,0 +1,15 @@
+[project]
+name = "agent-terminal"
+version = "0.1.0"
+description = "A small OpenAI-compatible terminal agent with local file tools and curl-based browsing."
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.0.0",
+]
+
+[project.scripts]
+agent-terminal = "agent_terminal.main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
