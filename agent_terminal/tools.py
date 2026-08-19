@@ -657,7 +657,7 @@ def list_agent_resources(kind: str = "all") -> str:
         return f"No resource directory found at {root}"
 
     if kind == "plugins":
-        plugins_root = root / "claude-code-plugins"
+        plugins_root = root / "mate-plugins"
         if not plugins_root.exists():
             return "No copied plugin directory found."
         rows = [path.name for path in sorted(plugins_root.iterdir()) if path.is_dir()]
@@ -703,7 +703,7 @@ def load_command(command_name: str) -> str:
         raise FileNotFoundError(f"command not found: {command_name}")
     if len(matches) > 1:
         return "Multiple commands matched:\n" + "\n".join(matches)
-    return read_agent_resource(f"claude-code-plugins/{matches[0]}")
+    return read_agent_resource(f"mate-plugins/{matches[0]}")
 
 
 def load_skill(skill_name: str) -> str:
@@ -723,7 +723,7 @@ def load_skill(skill_name: str) -> str:
         raise FileNotFoundError(f"skill not found: {skill_name}")
     if len(matches) > 1:
         return "Multiple skills matched:\n" + "\n".join(matches)
-    return read_agent_resource(f"claude-code-plugins/{matches[0]}")
+    return read_agent_resource(f"mate-plugins/{matches[0]}")
 
 
 def load_agent_prompt(agent_name: str) -> str:
@@ -743,7 +743,7 @@ def load_agent_prompt(agent_name: str) -> str:
         raise FileNotFoundError(f"agent prompt not found: {agent_name}")
     if len(matches) > 1:
         return "Multiple agent prompts matched:\n" + "\n".join(matches)
-    return read_agent_resource(f"claude-code-plugins/{matches[0]}")
+    return read_agent_resource(f"mate-plugins/{matches[0]}")
 
 
 def update_todos(items_json: str) -> str:
@@ -768,14 +768,14 @@ def update_todos(items_json: str) -> str:
 
 
 def run_plugin_hook(plugin_name: str, hook_command: str, input_json: str = "{}", max_time_seconds: int = 30) -> str:
-    """Run a copied plugin hook command with CLAUDE_PLUGIN_ROOT set."""
-    plugin_root = _resolve_in_resources(f"claude-code-plugins/{plugin_name}")
+    """Run a copied plugin hook command with MATE_PLUGIN_ROOT set."""
+    plugin_root = _resolve_in_resources(f"mate-plugins/{plugin_name}")
     if not plugin_root.is_dir():
         raise FileNotFoundError(f"plugin not found: {plugin_name}")
 
     timeout = max(1, min(int(max_time_seconds), 180))
     env = os.environ.copy()
-    env["CLAUDE_PLUGIN_ROOT"] = str(plugin_root)
+    env["MATE_PLUGIN_ROOT"] = str(plugin_root)
     env["PYTHONPATH"] = f"{plugin_root.parent}:{plugin_root}:{env.get('PYTHONPATH', '')}"
     result = subprocess.run(
         hook_command,
@@ -1178,7 +1178,7 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "run_plugin_hook",
-            "description": "Run a copied plugin hook command with CLAUDE_PLUGIN_ROOT and PYTHONPATH configured.",
+            "description": "Run a copied plugin hook command with MATE_PLUGIN_ROOT and PYTHONPATH configured.",
             "parameters": {
                 "type": "object",
                 "properties": {

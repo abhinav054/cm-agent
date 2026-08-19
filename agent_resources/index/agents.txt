@@ -1,0 +1,15 @@
+hookify/agents/conversation-analyzer.md
+pr-review-toolkit/agents/code-reviewer.md
+pr-review-toolkit/agents/code-simplifier.md
+pr-review-toolkit/agents/pr-test-analyzer.md
+pr-review-toolkit/agents/silent-failure-hunter.md
+pr-review-toolkit/agents/type-design-analyzer.md
+pr-review-toolkit/agents/comment-analyzer.md
+feature-dev/agents/code-reviewer.md
+feature-dev/agents/code-architect.md
+feature-dev/agents/code-explorer.md
+plugin-dev/agents/agent-creator.md
+plugin-dev/agents/plugin-validator.md
+plugin-dev/agents/skill-reviewer.md
+agent-sdk-dev/agents/agent-sdk-verifier-py.md
+agent-sdk-dev/agents/agent-sdk-verifier-ts.md

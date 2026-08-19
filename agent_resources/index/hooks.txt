@@ -1,0 +1,5 @@
+security-guidance/hooks/hooks.json
+ralph-wiggum/hooks/hooks.json
+learning-output-style/hooks/hooks.json
+hookify/hooks/hooks.json
+explanatory-output-style/hooks/hooks.json

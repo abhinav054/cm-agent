@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+DIST_DIR="$ROOT_DIR/dist"
+PACKAGE_DIR="$ROOT_DIR"
+
+cd "$ROOT_DIR"
+
+VERSION="$("$PYTHON_BIN" -c 'import tomllib, pathlib; data=tomllib.loads(pathlib.Path("pyproject.toml").read_text()); print(data["project"]["version"])' 2>/dev/null || "$PYTHON_BIN" -c 'import pathlib, re; text=pathlib.Path("pyproject.toml").read_text(); print(re.search(r"version = \"([^\"]+)\"", text).group(1))')"
+TAG="${TAG:-v$VERSION}"
+RELEASE_TITLE="${RELEASE_TITLE:-Mate $TAG}"
+NOTES_FILE="${NOTES_FILE:-}"
+PUBLISH="${PUBLISH:-0}"
+GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}"
+
+rm -rf "$DIST_DIR"
+mkdir -p "$DIST_DIR"
+
+"$PYTHON_BIN" -m venv "$DIST_DIR/.build-venv"
+# shellcheck disable=SC1091
+source "$DIST_DIR/.build-venv/bin/activate"
+python -m pip install --upgrade pip build
+python -m build "$PACKAGE_DIR" --outdir "$DIST_DIR/python"
+
+ARCHIVE_ROOT="$DIST_DIR/mate-$VERSION"
+mkdir -p "$ARCHIVE_ROOT"
+cp -R "$ROOT_DIR/agent_terminal" "$ARCHIVE_ROOT/agent_terminal"
+cp -R "$ROOT_DIR/agent_resources" "$ARCHIVE_ROOT/agent_resources"
+cp -R "$ROOT_DIR/.mate" "$ARCHIVE_ROOT/.mate"
+cp "$ROOT_DIR/run_agent.sh" "$ARCHIVE_ROOT/run_agent.sh"
+cp "$ROOT_DIR/install_agent.sh" "$ARCHIVE_ROOT/install_agent.sh"
+cp "$ROOT_DIR/scripts/install_mate.sh" "$ARCHIVE_ROOT/install_mate.sh"
+find "$ARCHIVE_ROOT" -type d \( -name __pycache__ -o -name .build-venv \) -prune -exec rm -rf {} +
+find "$ARCHIVE_ROOT" -type f -name '*.pyc' -delete
+
+tar -C "$DIST_DIR" -czf "$DIST_DIR/mate-$VERSION.tar.gz" "mate-$VERSION"
+
+echo "Built release artifacts:"
+find "$DIST_DIR" -maxdepth 2 -type f -printf "  %p\n" | sort
+
+if [[ "$PUBLISH" != "1" ]]; then
+  echo
+  echo "Dry run complete. Publish with:"
+  echo "  PUBLISH=1 $0"
+  exit 0
+fi
+
+if command -v gh >/dev/null 2>&1; then
+  if [[ -n "$NOTES_FILE" ]]; then
+    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION.tar.gz" --title "$RELEASE_TITLE" --notes-file "$NOTES_FILE"
+  else
+    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION.tar.gz" --title "$RELEASE_TITLE" --generate-notes
+  fi
+  echo "Published GitHub release $TAG."
+  exit 0
+fi
+
+if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+  echo "Set GITHUB_TOKEN, or install GitHub CLI and run: gh auth login" >&2
+  exit 1
+fi
+
+if [[ -z "$GITHUB_REPOSITORY" ]]; then
+  origin_url="$(git config --get remote.origin.url || true)"
+  GITHUB_REPOSITORY="$(printf '%s' "$origin_url" | sed -E 's#^git@github.com:##; s#^https://github.com/##; s#\.git$##')"
+fi
+
+if [[ -z "$GITHUB_REPOSITORY" || "$GITHUB_REPOSITORY" != */* ]]; then
+  echo "Set GITHUB_REPOSITORY as owner/repo, for example: GITHUB_REPOSITORY=you/mate" >&2
+  exit 1
+fi
+
+notes="Release $TAG"
+if [[ -n "$NOTES_FILE" ]]; then
+  notes="$(cat "$NOTES_FILE")"
+fi
+
+release_json="$(TAG="$TAG" RELEASE_TITLE="$RELEASE_TITLE" RELEASE_NOTES="$notes" "$PYTHON_BIN" -c 'import json, os; print(json.dumps({"tag_name": os.environ["TAG"], "name": os.environ["RELEASE_TITLE"], "body": os.environ["RELEASE_NOTES"], "draft": False, "prerelease": False}))')"
+
+release_response="$(curl -fsSL \
+  -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" \
+  -d "$release_json")"
+
+upload_url="$(printf '%s' "$release_response" | "$PYTHON_BIN" -c 'import json, sys; print(json.load(sys.stdin)["upload_url"].split("{", 1)[0])')"
+
+for asset in "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION.tar.gz"; do
+  name="$(basename "$asset")"
+  curl -fsSL \
+    -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    -H "Content-Type: application/octet-stream" \
+    --data-binary @"$asset" \
+    "$upload_url?name=$name" >/dev/null
+  echo "Uploaded $name"
+done
+
+echo "Published GitHub release $TAG."

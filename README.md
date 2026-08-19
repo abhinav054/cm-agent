@@ -51,6 +51,20 @@ export OPENAI_MODEL="gpt-4.1-mini"
 
 For compatible local servers, change `OPENAI_BASE_URL` and `OPENAI_MODEL`.
 
+## Mate Config
+
+Mate loads local configuration from `.mate` through `MATE_HOME`. The bundled
+`run_agent.sh` sets `MATE_HOME` to the repo-local `.mate` directory.
+
+- `.mate/config.toml`: approval policy and model environment variable names
+- `.mate/prompt.md`: extra startup prompt override
+- `.mate/mcp_servers.toml`: MCP server configuration placeholder
+- `.mate/keys.env`: local secrets, loaded only when an environment variable is not already set
+- `.mate/keys.env.example`: safe template for secrets
+
+Approval config supports `require_tools`, `allow_tools`, `require_commands`,
+`allow_commands`, and `auto_approve`.
+
 ## Workspace Servers
 
 When Mate runs a common long-running server command, such as `npm run dev`,
@@ -95,6 +109,58 @@ mate /path/to/the/folder/you/want/mate/to-edit
 You can also use `mate --workspace /path/to/workspace`.
 If you omit the workspace, `mate` creates a new temporary workspace
 directory under `/tmp`.
+
+## Release
+
+From the repo root, build local release artifacts with:
+
+```bash
+scripts/release_github.sh
+```
+
+Publish a GitHub release with the GitHub CLI:
+
+```bash
+gh auth login
+PUBLISH=1 scripts/release_github.sh
+```
+
+Or publish without `gh` by using a GitHub token:
+
+```bash
+GITHUB_TOKEN=ghp_xxx GITHUB_REPOSITORY=OWNER/REPO PUBLISH=1 scripts/release_github.sh
+```
+
+Optional environment variables:
+
+```bash
+TAG=v0.1.0
+RELEASE_TITLE="Mate v0.1.0"
+NOTES_FILE=release-notes.md
+```
+
+Users can install Mate from a release tarball with:
+
+```bash
+RELEASE_URL=https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz bash install_mate.sh
+```
+
+The installer prompts for an OpenAI-compatible API key and base URL when they
+are not provided. For non-interactive installs:
+
+```bash
+OPENAI_API_KEY=your-key \
+OPENAI_BASE_URL=https://api.openai.com/v1 \
+OPENAI_MODEL=gpt-4.1-mini \
+RELEASE_URL=https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz \
+bash install_mate.sh
+```
+
+For local testing, install from a checked-out source folder:
+
+```bash
+SOURCE_DIR=/path/to/mate bash scripts/install_mate.sh
+```
 
 Type requests such as:
 

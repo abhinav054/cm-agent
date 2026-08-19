@@ -7,6 +7,7 @@ from typing import Any
 
 from openai import OpenAI
 
+from . import config as mate_config
 from . import tools
 
 
@@ -147,18 +148,24 @@ class AgentServer:
     model: str
     ui: Any
     messages: list[dict[str, Any]]
+    config: mate_config.MateConfig
 
     @classmethod
     def create(cls, workspace: str | os.PathLike[str], ui: Any) -> "AgentServer":
+        config = mate_config.load_config()
         workspace_path = tools.set_workspace(workspace)
         tools.set_tool_ui(
             diff_handler=ui.diff,
             input_handler=lambda prompt, secret, default: _input_with_ui(ui, prompt, secret, default),
         )
 
-        api_key = os.getenv("OPENAI_API_KEY", "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")
-        base_url = os.getenv("OPENAI_BASE_URL", "https://api.groq.com/openai/v1")
-        model = os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b")
+        model_config = config.raw.get("model", {}) if isinstance(config.raw.get("model"), dict) else {}
+        api_key_env = str(model_config.get("api_key_env", "OPENAI_API_KEY"))
+        base_url_env = str(model_config.get("base_url_env", "OPENAI_BASE_URL"))
+        model_env = str(model_config.get("model_env", "OPENAI_MODEL"))
+        api_key = os.getenv(api_key_env, "")
+        base_url = os.getenv(base_url_env, "https://api.openai.com/v1")
+        model = os.getenv(model_env, "gpt-4.1-mini")
         if not api_key:
             raise SystemExit("OPENAI_API_KEY is required")
 
@@ -169,6 +176,7 @@ class AgentServer:
             "content": (
                 "You are Mate, a coding companion running in a terminal. "
                 f"Your workspace is {workspace_path}. "
+                f"Mate config is loaded from {config.mate_home}. "
                 f"Agent resources are available at {resource_root}. "
                 "Use tools to inspect, search, create, and edit files. "
                 "Do not write outside the workspace. "
@@ -187,6 +195,9 @@ class AgentServer:
             ),
         }
         project_context = tools.project_structure_summary()
+        prompt_messages = []
+        if config.prompt_override:
+            prompt_messages.append({"role": "system", "content": config.prompt_override})
         project_message = {
             "role": "system",
             "content": (
@@ -196,11 +207,17 @@ class AgentServer:
         }
         ui.banner(
             "Mate",
-            f"Workspace: {workspace_path}\nResources: {resource_root}\nModel: {model}\n\n"
+            f"Workspace: {workspace_path}\nConfig: {config.mate_home}\nResources: {resource_root}\nModel: {model}\n\n"
             "Type a request, /help for commands, or exit/quit to close.",
         )
         ui.panel("Project Structure", project_context, ui.CYAN)
-        return cls(client=client, model=model, ui=ui, messages=[base_system_message, project_message])
+        return cls(
+            client=client,
+            model=model,
+            ui=ui,
+            messages=[base_system_message] + prompt_messages + [project_message],
+            config=config,
+        )
 
     def reset(self, steering_message: dict[str, str] | None = None) -> None:
         base = self.messages[0]
@@ -212,7 +229,10 @@ class AgentServer:
                 f"answering the next user request:\n{project_context}"
             ),
         }
-        self.messages = [base, project] + ([steering_message] if steering_message else [])
+        prompt_messages = []
+        if self.config.prompt_override:
+            prompt_messages.append({"role": "system", "content": self.config.prompt_override})
+        self.messages = [base] + prompt_messages + [project] + ([steering_message] if steering_message else [])
 
     def run_turn(self, user_goal: str) -> str:
         self.messages.append({"role": "user", "content": user_goal})
@@ -225,9 +245,10 @@ class AgentServer:
         try:
             arguments = _json_arguments(tool_call.function.arguments)
             self.ui.activity("Working", describe_tool_start(name, arguments), self.ui.MAGENTA)
-            requires_approval = name in tools.APPROVAL_REQUIRED_TOOLS or (
-                name == "git" and tools.git_requires_approval(str(arguments.get("command", "")))
-            )
+            command = str(arguments.get("command", ""))
+            requires_approval = mate_config.tool_requires_approval(self.config, name, command)
+            if name == "git" and tools.git_requires_approval(command):
+                requires_approval = not mate_config.tool_allowed_without_approval(self.config, name, f"git {command}")
             if requires_approval and not self._confirm_tool_execution(name, arguments):
                 raise PermissionError("user denied command approval")
             with self.ui.working(describe_tool_start(name, arguments)):
