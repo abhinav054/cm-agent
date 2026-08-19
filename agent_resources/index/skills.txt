@@ -7,4 +7,4 @@ plugin-dev/skills/skill-development/SKILL.md
 plugin-dev/skills/plugin-structure/SKILL.md
 plugin-dev/skills/plugin-settings/SKILL.md
 plugin-dev/skills/mcp-integration/SKILL.md
-mate-opus-4-5-migration/skills/mate-opus-4-5-migration/SKILL.md
+mate--4-5-migration/skills/mate--4-5-migration/SKILL.md

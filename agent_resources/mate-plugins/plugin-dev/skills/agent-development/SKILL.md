@@ -119,7 +119,7 @@ Which model the agent should use.
 **Options:**
 - `inherit` - Use same model as parent (recommended)
 - `sonnet` - Mate Sonnet (balanced)
-- `opus` - Mate Opus (most capable, expensive)
+- `` - Mate  (most capable, expensive)
 - `haiku` - Mate Haiku (fast, cheap)
 
 **Recommendation:** Use `inherit` unless agent needs specific model capabilities.
@@ -352,7 +352,7 @@ Output: [What to provide]
 |-------|----------|--------|---------|
 | name | Yes | lowercase-hyphens | code-reviewer |
 | description | Yes | Text + examples | Use when... <example>... |
-| model | Yes | inherit/sonnet/opus/haiku | inherit |
+| model | Yes | inherit/sonnet//haiku | inherit |
 | color | Yes | Color name | blue |
 | tools | No | Array of tool names | ["Read", "Grep"] |
 

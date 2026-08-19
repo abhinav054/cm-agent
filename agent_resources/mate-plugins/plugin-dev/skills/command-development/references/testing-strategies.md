@@ -96,8 +96,8 @@ fi
 # Check 'model' field if present
 if echo "$FRONTMATTER" | grep -q "^model:"; then
   MODEL=$(echo "$FRONTMATTER" | grep "^model:" | cut -d: -f2 | tr -d ' ')
-  if ! echo "sonnet opus haiku" | grep -qw "$MODEL"; then
-    echo "ERROR: Invalid model '$MODEL' (must be sonnet, opus, or haiku)"
+  if ! echo "sonnet  haiku" | grep -qw "$MODEL"; then
+    echo "ERROR: Invalid model '$MODEL' (must be sonnet, , or haiku)"
     exit 1
   fi
   echo "✓ Model field valid: $MODEL"

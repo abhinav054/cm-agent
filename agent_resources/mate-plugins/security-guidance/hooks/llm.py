@@ -61,7 +61,7 @@ HAS_API_CREDENTIALS = bool(
 # interruptive review surfaces — false positives are the dominant uninstall
 # driver, so the default favors precision over recall and over latency.
 # Override via the SECURITY_REVIEW_MODEL env var (see README).
-SECURITY_REVIEW_MODEL = os.environ.get("SECURITY_REVIEW_MODEL", "").strip() or "mate-opus-4-7"
+SECURITY_REVIEW_MODEL = os.environ.get("SECURITY_REVIEW_MODEL", "").strip() or "mate--4-7"
 
 # OAuth subscriber tokens (ANTHROPIC_AUTH_TOKEN) require this exact system prompt
 # for api.anthropic.com/v1/messages — the API checks for one of the known Mate
@@ -208,15 +208,15 @@ def _build_auth_headers(use_token):
 # Mirrors Mate's adaptive-thinking model support; keep in sync
 # when new model families ship.
 _ADAPTIVE_THINKING_MODELS = (
-    "mate-opus-4-6",
-    "mate-opus-4-7",
+    "mate--4-6",
+    "mate--4-7",
     "mate-sonnet-4-6",
 )
 _LEGACY_THINKING_MODELS = (
     "mate-3-",
-    "mate-opus-4-0",
-    "mate-opus-4-1",
-    "mate-opus-4-5",
+    "mate--4-0",
+    "mate--4-1",
+    "mate--4-5",
     "mate-sonnet-4-0",
     "mate-sonnet-4-5",
     "mate-haiku-4-5",
@@ -226,7 +226,7 @@ _LEGACY_THINKING_MODELS = (
 def _model_supports_adaptive_thinking(model: str) -> bool:
     """True for models that reject the budget_tokens thinking form (4.6+)."""
     name = (model or "").lower()
-    # Strip provider/version suffixes (e.g. "us.anthropic.mate-opus-4-7-v1:0").
+    # Strip provider/version suffixes (e.g. "us.anthropic.mate--4-7-v1:0").
     for prefix in ("us.anthropic.", "eu.anthropic.", "anthropic."):
         if name.startswith(prefix):
             name = name[len(prefix):]
@@ -1118,7 +1118,7 @@ def agentic_review(
 
     # Default to the documented public model. Overridable via SG_AGENTIC_MODEL.
     # The bundled SDK CLI only knows public model names.
-    _DEFAULT_PUBLIC_MODEL = "mate-opus-4-7"
+    _DEFAULT_PUBLIC_MODEL = "mate--4-7"
     model = os.environ.get("SG_AGENTIC_MODEL") or _DEFAULT_PUBLIC_MODEL
     max_turns = int(os.environ.get("SG_AGENTIC_MAX_TURNS", "18"))
     # In production repo_dir is the user's working tree (full repo). Under the
@@ -1225,7 +1225,7 @@ def agentic_review(
             output_format={"type": "json_schema", "schema": schema},
             # 529-overload on the primary leaves structured_output empty; the
             # SDK's fallback_model is honored only when the primary is an
-            # Opus model unless FALLBACK_FOR_ALL_PRIMARY_MODELS is set; the
+            #  model unless FALLBACK_FOR_ALL_PRIMARY_MODELS is set; the
             # primary needs the env override.
             #
             # Identical --model/--fallback-model is rejected by the inner CLI

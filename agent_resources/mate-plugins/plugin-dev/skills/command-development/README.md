@@ -151,7 +151,7 @@ Command prompt content with:
 |-------|---------|---------|
 | `description` | Brief description for /help | `"Review code for issues"` |
 | `allowed-tools` | Restrict tool access | `Read, Bash(git:*)` |
-| `model` | Specify model | `sonnet`, `opus`, `haiku` |
+| `model` | Specify model | `sonnet`, ``, `haiku` |
 | `argument-hint` | Document arguments | `[pr-number] [priority]` |
 | `disable-model-invocation` | Manual-only command | `true` |
 

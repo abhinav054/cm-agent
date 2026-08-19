@@ -132,7 +132,7 @@ allowed-tools: "*"
 **Type:** String
 **Required:** No
 **Default:** Inherits from conversation
-**Values:** `sonnet`, `opus`, `haiku`
+**Values:** `sonnet`, ``, `haiku`
 
 **Purpose:** Specify which Mate model executes the command
 
@@ -144,7 +144,7 @@ model: haiku    # Fast, efficient for simple tasks
 model: sonnet   # Balanced performance (default)
 ```
 ```yaml
-model: opus     # Maximum capability for complex tasks
+model:      # Maximum capability for complex tasks
 ```
 
 **When to use:**
@@ -174,7 +174,7 @@ model: sonnet
 ---
 ```
 
-**Use `opus` for:**
+**Use `` for:**
 - Complex analysis
 - Architectural decisions
 - Deep code understanding
@@ -183,14 +183,14 @@ model: sonnet
 ```yaml
 ---
 description: Analyze system architecture
-model: opus
+model: 
 ---
 ```
 
 **Best practices:**
 - Omit unless specific need
 - Use `haiku` for speed when possible
-- Reserve `opus` for genuinely complex tasks
+- Reserve `` for genuinely complex tasks
 - Test with different models to find right balance
 
 ### argument-hint
@@ -440,7 +440,7 @@ allowed-tools: Bash  # ❌ Missing command filter
 model: gpt4  # ❌ Not a valid Mate model
 ```
 
-**Fix:** Use `sonnet`, `opus`, or `haiku`
+**Fix:** Use `sonnet`, ``, or `haiku`
 
 ### Validation Checklist
 
@@ -457,7 +457,7 @@ Before committing command:
 1. **Start minimal:** Add frontmatter only when needed
 2. **Document arguments:** Always use argument-hint with arguments
 3. **Restrict tools:** Use most restrictive allowed-tools that works
-4. **Choose right model:** Use haiku for speed, opus for complexity
+4. **Choose right model:** Use haiku for speed,  for complexity
 5. **Manual-only sparingly:** Only use disable-model-invocation when necessary
 6. **Clear descriptions:** Make commands discoverable in `/help`
 7. **Test thoroughly:** Verify frontmatter works as expected

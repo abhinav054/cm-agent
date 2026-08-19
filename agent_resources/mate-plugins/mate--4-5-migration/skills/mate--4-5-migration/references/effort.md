@@ -1,6 +1,6 @@
 # Effort Parameter (Beta)
 
-**Add effort set to `"high"` during migration.** This is the default configuration for best performance with Opus 4.5.
+**Add effort set to `"high"` during migration.** This is the default configuration for best performance with  4.5.
 
 ## Overview
 
@@ -19,7 +19,7 @@ Requires beta flag `effort-2025-11-24` in API calls.
 **Python SDK:**
 ```python
 response = client.messages.create(
-    model="mate-opus-4-5-20251101",
+    model="mate--4-5-20251101",
     max_tokens=1024,
     betas=["effort-2025-11-24"],
     output_config={
@@ -32,7 +32,7 @@ response = client.messages.create(
 **TypeScript SDK:**
 ```typescript
 const response = await client.messages.create({
-  model: "mate-opus-4-5-20251101",
+  model: "mate--4-5-20251101",
   max_tokens: 1024,
   betas: ["effort-2025-11-24"],
   output_config: {
@@ -45,7 +45,7 @@ const response = await client.messages.create({
 **Raw API:**
 ```json
 {
-  "model": "mate-opus-4-5-20251101",
+  "model": "mate--4-5-20251101",
   "max_tokens": 1024,
   "anthropic-beta": "effort-2025-11-24",
   "output_config": {

@@ -91,7 +91,7 @@ You are an expert plugin validator specializing in comprehensive validation of M
        - Frontmatter with `name`, `description`, `model`, `color`
        - Name format (lowercase, hyphens, 3-50 chars)
        - Description includes `<example>` blocks
-       - Model is valid (inherit/sonnet/opus/haiku)
+       - Model is valid (inherit/sonnet//haiku)
        - Color is valid (blue/cyan/green/yellow/magenta/red)
        - System prompt exists and is substantial (>20 chars)
 

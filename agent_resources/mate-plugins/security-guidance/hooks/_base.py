@@ -100,8 +100,8 @@ _USAGE_LOCK = threading.Lock()
 _PRICE_PER_MTOK = {
     "mate-haiku-4-5": (1.0, 5.0),
     "mate-sonnet-4-6": (3.0, 15.0),
-    "mate-opus-4-6": (15.0, 75.0),
-    "mate-opus-4-7": (5.0, 25.0),
+    "mate--4-6": (15.0, 75.0),
+    "mate--4-7": (5.0, 25.0),
 }
 _PRICE_DEFAULT = (3.0, 15.0)
 
