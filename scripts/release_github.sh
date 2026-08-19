@@ -35,11 +35,12 @@ cp -R "$ROOT_DIR/.mate" "$ARCHIVE_ROOT/.mate"
 cp "$ROOT_DIR/run_agent.sh" "$ARCHIVE_ROOT/run_agent.sh"
 cp "$ROOT_DIR/install_agent.sh" "$ARCHIVE_ROOT/install_agent.sh"
 cp "$ROOT_DIR/scripts/install_mate.sh" "$ARCHIVE_ROOT/install_mate.sh"
+cp "$ROOT_DIR/install_latest_mate.sh" "$ARCHIVE_ROOT/install_latest_mate.sh"
 find "$ARCHIVE_ROOT" -type d \( -name __pycache__ -o -name .build-venv \) -prune -exec rm -rf {} +
 find "$ARCHIVE_ROOT" -type f -name '*.pyc' -delete
 rm -f "$ARCHIVE_ROOT/.env" "$ARCHIVE_ROOT/.mate/keys.env"
 
-tar -C "$DIST_DIR" -czf "$DIST_DIR/mate-$VERSION.tar.gz" "mate-$VERSION"
+tar -C "$DIST_DIR" -czf "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "mate-$VERSION"
 
 echo "Built release artifacts:"
 find "$DIST_DIR" -maxdepth 2 -type f -printf "  %p\n" | sort
@@ -53,9 +54,9 @@ fi
 
 if command -v gh >/dev/null 2>&1; then
   if [[ -n "$NOTES_FILE" ]]; then
-    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION.tar.gz" --title "$RELEASE_TITLE" --notes-file "$NOTES_FILE"
+    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" --title "$RELEASE_TITLE" --notes-file "$NOTES_FILE"
   else
-    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION.tar.gz" --title "$RELEASE_TITLE" --generate-notes
+    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" --title "$RELEASE_TITLE" --generate-notes
   fi
   echo "Published GitHub release $TAG."
   exit 0
@@ -93,7 +94,7 @@ release_response="$(curl -fsSL \
 
 upload_url="$(printf '%s' "$release_response" | "$PYTHON_BIN" -c 'import json, sys; print(json.load(sys.stdin)["upload_url"].split("{", 1)[0])')"
 
-for asset in "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION.tar.gz"; do
+for asset in "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz"; do
   name="$(basename "$asset")"
   curl -fsSL \
     -X POST \

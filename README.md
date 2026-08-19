@@ -10,11 +10,33 @@ loads reusable commands, agents, hooks, and skills from `agent_resources`.
 
 ## Install
 
-Install Mate from a release tarball:
+Download the latest installer and run it:
 
 ```bash
-bash install_mate.sh \
-  --release-url https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz \
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/install_latest_mate.sh -o install_latest_mate.sh
+chmod +x install_latest_mate.sh
+./install_latest_mate.sh \
+  --repo OWNER/REPO \
+  --api-key your-key \
+  --base-url https://api.openai.com/v1 \
+  --model gpt-4.1-mini
+```
+
+From a checked-out repo, run the latest-release installer directly:
+
+```bash
+./install_latest_mate.sh \
+  --repo OWNER/REPO \
+  --api-key your-key \
+  --base-url https://api.openai.com/v1 \
+  --model gpt-4.1-mini
+```
+
+To install a specific release tarball instead:
+
+```bash
+./install_mate.sh \
+  --release-url https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini
@@ -224,6 +246,7 @@ bash -n run_agent.sh
 bash -n install_agent.sh
 bash -n scripts/release_github.sh
 bash -n scripts/install_mate.sh
+bash -n scripts/install_latest_mate.sh
 scripts/release_github.sh
 ```
 
@@ -261,8 +284,8 @@ NOTES_FILE=release-notes.md
 Release users install with:
 
 ```bash
-bash install_mate.sh \
-  --release-url https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz \
+./install_latest_mate.sh \
+  --repo OWNER/REPO \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini
@@ -271,5 +294,5 @@ bash install_mate.sh \
 For local testing, install from a checked-out source folder:
 
 ```bash
-bash scripts/install_mate.sh --source-dir /path/to/mate --api-key your-key --base-url https://api.openai.com/v1
+./scripts/install_mate.sh --source-dir /path/to/mate --api-key your-key --base-url https://api.openai.com/v1
 ```
