@@ -10,15 +10,17 @@ loads reusable commands, agents, hooks, and skills from `agent_resources`.
 
 ## Install
 
-From the repo root:
+From the repo root, run the installer:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
+./install_agent.sh
 ```
 
-Configure your model endpoint with environment variables:
+The installer creates `.venv`, installs Mate in editable mode, and prints the
+local run command.
+
+Configure your model endpoint when prompted by the installer, or set environment
+variables first:
 
 ```bash
 export OPENAI_API_KEY="your-key"
@@ -75,6 +77,7 @@ Mate loads configuration from `.mate` through `MATE_HOME`. The bundled
   config.toml
   prompt.md
   mcp_servers.toml
+  skills/
   keys.env.example
 ```
 
@@ -153,27 +156,32 @@ Store tokens in `.mate/keys.env` or your shell environment, not directly in
 
 ## Skills
 
-Mate discovers copied skills through `agent_resources/index/skills.txt` and reads
-skill files from `agent_resources/mate-plugins`.
+Put local skills in `.mate/skills`. Mate checks this folder before bundled
+resources, so local skills can be added without editing `agent_resources`.
 
 A skill is a directory containing a `SKILL.md` file:
 
 ```text
-agent_resources/mate-plugins/my-plugin/
-  .mate-plugin/plugin.json
-  skills/my-skill/SKILL.md
+.mate/skills/my-skill/
+  SKILL.md
   references/
   scripts/
 ```
 
-Add a skill by placing it under `agent_resources/mate-plugins/<plugin>/skills/`
-and adding the relative path to `agent_resources/index/skills.txt`:
+Minimal local skill:
 
-```text
-my-plugin/skills/my-skill/SKILL.md
+```markdown
+# My Skill
+
+Use this skill when Mate needs to handle a specific workflow.
+
+1. Inspect the relevant files.
+2. Apply the project convention.
+3. Verify the result before answering.
 ```
 
-Then restart Mate and ask it to use the skill by name, or list available skills:
+Then restart Mate and ask it to use the skill by folder name, or list available
+skills:
 
 ```text
 /resources skills
@@ -182,6 +190,10 @@ Then restart Mate and ask it to use the skill by name, or list available skills:
 Keep `SKILL.md` focused: describe when to use the skill, the workflow Mate should
 follow, and which reference files matter. Put long examples, scripts, and
 supporting docs in nearby `references/`, `examples/`, or `scripts/` folders.
+
+Bundled skills still live under `agent_resources/mate-plugins` and are indexed in
+`agent_resources/index/skills.txt`. Use that path for skills that should ship
+with Mate releases.
 
 ## Project Layout
 

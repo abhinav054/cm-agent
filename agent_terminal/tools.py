@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 MAX_TOOL_OUTPUT_CHARS = 16_000
-DEFAULT_RESOURCE_DIR = Path(__file__).resolve().parents[2] / "agent_resources"
+DEFAULT_RESOURCE_DIR = Path(__file__).resolve().parents[1] / "agent_resources"
 WORKSPACE_SERVERS_FILE = Path(".codex") / "workspace-servers.jsonl"
 TODO_ITEMS: list[dict[str, str]] = []
 STEERING_PROMPTS: list[str] = []
@@ -79,6 +79,15 @@ def _resource_root() -> Path:
 
 def resource_root() -> Path:
     return _resource_root()
+
+
+def _mate_home() -> Path:
+    configured = os.getenv("MATE_HOME")
+    return Path(configured).expanduser().resolve() if configured else (Path.home() / ".mate").resolve()
+
+
+def _local_skills_root() -> Path:
+    return _mate_home() / "skills"
 
 
 def _resolve_in_resources(path: str | None) -> Path:
@@ -671,6 +680,13 @@ def list_agent_resources(kind: str = "all") -> str:
             content = _read_text_file(index_path)
         else:
             content = "(missing index)"
+        if item == "skills":
+            local_skills = [
+                str(path.relative_to(_local_skills_root()))
+                for path in sorted(_local_skills_root().glob("*/SKILL.md"))
+            ]
+            if local_skills:
+                content = content + "\n\n[local .mate/skills]\n" + "\n".join(local_skills)
         sections.append(f"[{item}]\n{content}")
     return "\n\n".join(sections)
 
@@ -707,10 +723,13 @@ def load_command(command_name: str) -> str:
 
 
 def load_skill(skill_name: str) -> str:
-    """Load a copied SKILL.md by skill directory name."""
+    """Load a local or copied SKILL.md by skill directory name."""
     normalized = skill_name.strip()
     if not normalized:
         raise ValueError("skill_name is required")
+    local_skill = _local_skills_root() / normalized / "SKILL.md"
+    if local_skill.is_file():
+        return _read_text_file(local_skill)
     index_path = _resource_root() / "index" / "skills.txt"
     if not index_path.exists():
         raise FileNotFoundError("skills index is missing")
