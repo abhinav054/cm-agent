@@ -1,47 +1,24 @@
 # Mate
 
-Mate is a small Python terminal coding companion that talks to an OpenAI-compatible API and can:
+Mate is a terminal coding companion for local projects. It talks to an
+OpenAI-compatible API, works inside a bounded workspace, and shows a friendly TUI
+with concise activity updates, approval prompts, colored diffs, and elapsed-time
+results.
 
-- browse the internet with `curl`
-- list files
-- glob files
-- read files
-- touch files
-- write files
-- edit files
-- run workspace shell commands with terminal approval
-- run constrained Git operations with approval for mutating commands
-- start, inspect, and stop background processes for dev servers and watchers
-- ask for required user input in the terminal TUI, including hidden prompts for secrets
-- record workspace server launch commands for service creation
-- search files
-- load copied commands, agents, skills, and hooks
-- check its final answer with a bounded result check before returning it
+Mate keeps its behavior configurable through a repo-local `.mate` directory and
+loads reusable commands, agents, hooks, and skills from `agent_resources`.
 
-Mate only reads, writes, and runs workspace commands inside the workspace
-directory you pass on startup.
+## Install
 
-On startup, Mate captures and displays a project structure summary
-for the selected workspace, then includes that context in the model prompt so it
-orients itself before acting.
-
-## Architecture
-
-- `agent_terminal/main.py`: terminal client, runtime commands, and input loop
-- `agent_terminal/server.py`: model loop, tool-call execution, approval routing, and result checking
-- `agent_terminal/tools.py`: workspace-safe tools, schemas, Git, files, commands, resources, and background processes
-- `agent_terminal/ui.py`: terminal panels, colors, prompts, and colored file diffs
-
-## Setup
+From the repo root:
 
 ```bash
-cd agent_terminal
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
 
-Configure an OpenAI-compatible endpoint:
+Configure your model endpoint with environment variables:
 
 ```bash
 export OPENAI_API_KEY="your-key"
@@ -49,66 +26,173 @@ export OPENAI_BASE_URL="https://api.openai.com/v1"
 export OPENAI_MODEL="gpt-4.1-mini"
 ```
 
-For compatible local servers, change `OPENAI_BASE_URL` and `OPENAI_MODEL`.
-
-## Mate Config
-
-Mate loads local configuration from `.mate` through `MATE_HOME`. The bundled
-`run_agent.sh` sets `MATE_HOME` to the repo-local `.mate` directory.
-
-- `.mate/config.toml`: approval policy and model environment variable names
-- `.mate/prompt.md`: extra startup prompt override
-- `.mate/mcp_servers.toml`: MCP server configuration placeholder
-- `.mate/keys.env`: local secrets, loaded only when an environment variable is not already set
-- `.mate/keys.env.example`: safe template for secrets
-
-Approval config supports `require_tools`, `allow_tools`, `require_commands`,
-`allow_commands`, and `auto_approve`.
-
-## Workspace Servers
-
-When Mate runs a common long-running server command, such as `npm run dev`,
-`python -m http.server`, `uvicorn ...`, or `go run ...`, it appends a JSON line
-to `.codex/workspace-servers.jsonl` in the active workspace. Each record includes
-the workspace path, relative cwd, command, timestamp, and reason, so a separate
-service manager can create or reconcile a service for that server.
-
-## Command Approval and Background Processes
-
-The terminal UI shows friendly activity updates while Mate works, including
-elapsed time for model and tool work. Tool output is sent back to the model but
-the shell shows concise status lines such as `Ran shell command`, `Read file`,
-or `Edited file` instead of raw tool-result dumps.
-
-When Mate asks to use `run_command`, `start_background_process`, or a
-mutating Git command, the terminal shows an approval panel with the command, cwd,
-and timeout. Approve with `y`/`yes`, or press Enter to deny. Set
-`AGENT_AUTO_APPROVE_COMMANDS=1` only for trusted local sessions where you do not
-want the prompt.
-
-Read-only Git commands such as `status`, `diff`, `log`, `branch`, and `show` run
-through the `git` tool without shell execution. Mutating commands such as `add`,
-`commit`, `restore`, `checkout`, `reset`, `push`, and `pull` require approval.
-
-Long-running commands should use `start_background_process` instead of
-`run_command`. Mate can then call `list_background_processes`,
-`read_background_process`, and `stop_background_process`. You can also type
-`/backgrounds` to see processes started in the current terminal session.
-
-When Mate needs information that is not available in the workspace, such as
-database URLs, API keys, credentials, tokens, or deployment settings, it should
-use `request_user_input`. Sensitive values are requested with hidden terminal
-input so they are not echoed on screen.
+You can also put those values in `.env` or `.mate/keys.env`. Environment
+variables already set in your shell take precedence.
 
 ## Run
 
+Use a specific workspace:
+
 ```bash
-mate /path/to/the/folder/you/want/mate/to-edit
+mate /path/to/workspace
 ```
 
-You can also use `mate --workspace /path/to/workspace`.
-If you omit the workspace, `mate` creates a new temporary workspace
-directory under `/tmp`.
+or:
+
+```bash
+mate --workspace /path/to/workspace
+```
+
+If you omit the workspace, Mate creates a fresh temporary workspace under `/tmp`.
+
+The bundled wrapper sets the repo-local config paths for you:
+
+```bash
+./run_agent.sh /path/to/workspace
+./run_agent.sh
+```
+
+Inside Mate:
+
+```text
+/help
+/steer Prefer small, focused patches and always run tests before final answers.
+/steer show
+/steer clear
+/resources all
+/resources skills
+/backgrounds
+/reset
+```
+
+## Configuration
+
+Mate loads configuration from `.mate` through `MATE_HOME`. The bundled
+`run_agent.sh` sets `MATE_HOME` to the repo-local `.mate` directory.
+
+```text
+.mate/
+  config.toml
+  prompt.md
+  mcp_servers.toml
+  keys.env.example
+```
+
+`.mate/config.toml` controls approval behavior and model environment variable
+names:
+
+```toml
+[approval]
+auto_approve = false
+require_tools = ["run_command", "start_background_process"]
+allow_tools = ["list_files", "glob_files", "read_file", "search_files"]
+allow_commands = ["pwd", "ls", "ls *", "rg *", "git status*", "git diff*"]
+require_commands = ["pip install *", "npm install*", "git push*"]
+
+[model]
+api_key_env = "OPENAI_API_KEY"
+base_url_env = "OPENAI_BASE_URL"
+model_env = "OPENAI_MODEL"
+```
+
+`.mate/prompt.md` is loaded as an extra system prompt at startup. Use it for
+local behavior, conventions, and project preferences.
+
+`.mate/keys.env` is for local secrets. It is ignored by git and loaded only when
+the matching environment variable is not already set.
+
+## Approvals
+
+Mate asks before running tools or commands that match the approval config. The
+approval prompt is transient, so after you answer the terminal keeps only a short
+confirmation line:
+
+```text
+✔ You approved Mate to run `python -m pip install xgboost` this time
+```
+
+Read-only commands such as `ls`, `rg`, `git status`, and `git diff` can be
+allowed in `.mate/config.toml`. Installs, servers, and mutating git commands
+should usually remain approval-gated.
+
+## MCP Servers
+
+Put MCP server definitions in `.mate/mcp_servers.toml`. The file is currently the
+canonical config location for Mate integrations and is shaped so a launcher can
+start servers later without mixing connection details into prompts.
+
+Example stdio server:
+
+```toml
+[servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/workspace"]
+env = { LOG_LEVEL = "info" }
+```
+
+Example local service:
+
+```toml
+[servers.docs]
+command = "python"
+args = ["-m", "my_docs_mcp"]
+cwd = "/path/to/docs-server"
+env = { DOCS_ROOT = "/path/to/docs" }
+```
+
+Example remote HTTP server:
+
+```toml
+[servers.search]
+url = "https://mcp.example.com"
+headers = { Authorization = "Bearer ${SEARCH_MCP_TOKEN}" }
+```
+
+Store tokens in `.mate/keys.env` or your shell environment, not directly in
+`mcp_servers.toml`.
+
+## Skills
+
+Mate discovers copied skills through `agent_resources/index/skills.txt` and reads
+skill files from `agent_resources/mate-plugins`.
+
+A skill is a directory containing a `SKILL.md` file:
+
+```text
+agent_resources/mate-plugins/my-plugin/
+  .mate-plugin/plugin.json
+  skills/my-skill/SKILL.md
+  references/
+  scripts/
+```
+
+Add a skill by placing it under `agent_resources/mate-plugins/<plugin>/skills/`
+and adding the relative path to `agent_resources/index/skills.txt`:
+
+```text
+my-plugin/skills/my-skill/SKILL.md
+```
+
+Then restart Mate and ask it to use the skill by name, or list available skills:
+
+```text
+/resources skills
+```
+
+Keep `SKILL.md` focused: describe when to use the skill, the workflow Mate should
+follow, and which reference files matter. Put long examples, scripts, and
+supporting docs in nearby `references/`, `examples/`, or `scripts/` folders.
+
+## Project Layout
+
+```text
+agent_terminal/          Python package
+agent_resources/         bundled commands, agents, hooks, and skills
+.mate/                   local Mate config
+scripts/                 release and installer scripts
+run_agent.sh             local wrapper
+install_agent.sh         local editable installer
+```
 
 ## Release
 
@@ -131,7 +215,7 @@ Or publish without `gh` by using a GitHub token:
 GITHUB_TOKEN=ghp_xxx GITHUB_REPOSITORY=OWNER/REPO PUBLISH=1 scripts/release_github.sh
 ```
 
-Optional environment variables:
+Optional release environment variables:
 
 ```bash
 TAG=v0.1.0
@@ -160,40 +244,4 @@ For local testing, install from a checked-out source folder:
 
 ```bash
 SOURCE_DIR=/path/to/mate bash scripts/install_mate.sh
-```
-
-Type requests such as:
-
-```text
-Create a Python file named app.py that prints hello.
-Search for TODO comments.
-Browse https://example.com and summarize it.
-```
-
-Use `exit` or `quit` to close Mate.
-
-## Runtime Commands
-
-Inside Mate:
-
-```text
-/help
-/steer Prefer small, focused patches and always run tests before final answers.
-/steer show
-/steer clear
-/resources all
-/resources skills
-/backgrounds
-/reset
-```
-
-`/steer` adds persistent guidance for later turns. `/reset` clears the conversation
-history while preserving active steering prompts.
-
-The result check runs after each response. If the response does not
-appear aligned with the latest prompt and more tool work could help, it asks the
-Mate to take another pass with that feedback. Control retries with:
-
-```bash
-export AGENT_HARNESS_MAX_RETRIES=2
 ```

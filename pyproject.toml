@@ -11,6 +11,10 @@ dependencies = [
 mate = "agent_terminal.main:main"
 agent-terminal = "agent_terminal.main:main"
 
+[tool.setuptools.packages.find]
+include = ["agent_terminal*"]
+exclude = ["agent_resources*", "scripts*", "dist*", "build*"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
