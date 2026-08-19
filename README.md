@@ -10,24 +10,18 @@ loads reusable commands, agents, hooks, and skills from `agent_resources`.
 
 ## Install
 
-From the repo root, run the installer:
+Install Mate from a release tarball:
 
 ```bash
-./install_agent.sh --api-key your-key --base-url https://api.openai.com/v1 --model gpt-4.1-mini
-```
-
-The installer creates `.venv`, installs Mate in editable mode, and saves model
-settings to `.mate/keys.env`. Any missing value is read from the matching
-environment variable first, then prompted interactively.
-
-Supported installer options:
-
-```bash
-./install_agent.sh \
+bash install_mate.sh \
+  --release-url https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini
 ```
+
+The installer saves model settings to Mate home. Any missing value is read from
+the matching environment variable first, then prompted interactively.
 
 Environment fallback names are `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and
 `OPENAI_MODEL`. Environment variables already set in your shell take precedence
@@ -208,6 +202,33 @@ run_agent.sh             local wrapper
 install_agent.sh         local editable installer
 ```
 
+## Contributing
+
+For local development from a checked-out repo, run:
+
+```bash
+./install_agent.sh \
+  --api-key your-key \
+  --base-url https://api.openai.com/v1 \
+  --model gpt-4.1-mini
+```
+
+The local installer creates `.venv`, installs Mate in editable mode, and saves
+model settings to `.mate/keys.env`.
+
+Build and verify locally:
+
+```bash
+python -m compileall agent_terminal
+bash -n run_agent.sh
+bash -n install_agent.sh
+bash -n scripts/release_github.sh
+bash -n scripts/install_mate.sh
+scripts/release_github.sh
+```
+
+The release build writes artifacts to `dist/`.
+
 ## Release
 
 From the repo root, build local release artifacts with:
@@ -237,18 +258,7 @@ RELEASE_TITLE="Mate v0.1.0"
 NOTES_FILE=release-notes.md
 ```
 
-Users can install Mate from a release tarball with:
-
-```bash
-bash install_mate.sh \
-  --release-url https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz \
-  --api-key your-key \
-  --base-url https://api.openai.com/v1 \
-  --model gpt-4.1-mini
-```
-
-The installer prompts for an OpenAI-compatible API key and base URL when they
-are not provided. For non-interactive installs:
+Release users install with:
 
 ```bash
 bash install_mate.sh \
