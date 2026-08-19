@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import tempfile
+import time
 from pathlib import Path
 
 from . import tools
@@ -11,18 +13,25 @@ STEERING_PROMPTS: list[str] = []
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the terminal coding agent against a workspace directory.")
+    parser = argparse.ArgumentParser(description="Run Mate against a workspace directory.")
     parser.add_argument(
         "workspace_arg",
         nargs="?",
-        help="Workspace directory the agent may read, write, and run commands inside.",
+        help="Workspace directory Mate may read, write, and run commands inside.",
     )
     parser.add_argument(
         "--workspace",
         dest="workspace_option",
-        help="Workspace directory the agent may read, write, and run commands inside.",
+        help="Workspace directory Mate may read, write, and run commands inside.",
     )
     return parser.parse_args()
+
+
+def _resolve_workspace(args: argparse.Namespace) -> str | Path:
+    workspace = args.workspace_option or args.workspace_arg
+    if workspace:
+        return workspace
+    return Path(tempfile.mkdtemp(prefix="mate-"))
 
 
 def _print_help() -> None:
@@ -36,7 +45,7 @@ def _print_help() -> None:
         "- /reset: clear conversation history except the base system prompt and steering\n"
         "- /resources [kind]: list copied resources; kind can be all, agents, skills, commands, hooks, plugins\n"
         "- /backgrounds: list background processes started in this session\n"
-        "- exit or quit: close the agent\n"
+        "- exit or quit: close Mate\n"
         "\nShell commands and mutating Git commands require approval before they run.\n",
     )
 
@@ -99,12 +108,12 @@ def _handle_runtime_command(server: AgentServer, user_input: str) -> bool:
 
 def main() -> None:
     args = _parse_args()
-    workspace = args.workspace_option or args.workspace_arg or Path.cwd()
+    workspace = _resolve_workspace(args)
     server = AgentServer.create(workspace, UI)
 
     while True:
         try:
-            user_input = input(UI.style("agent> ", UI.BOLD, UI.BLUE)).strip()
+            user_input = input(UI.prompt_label()).strip()
         except (EOFError, KeyboardInterrupt):
             print()
             break
@@ -116,8 +125,9 @@ def main() -> None:
         if _handle_runtime_command(server, user_input):
             continue
 
+        started = time.monotonic()
         answer = server.run_turn(user_input)
-        UI.panel("Assistant", answer, UI.GREEN)
+        UI.answer(answer, time.monotonic() - started)
 
 
 if __name__ == "__main__":

@@ -79,31 +79,66 @@ def describe_tool_start(name: str, arguments: dict[str, Any]) -> str:
     return f"Tool: {name}"
 
 
-def describe_tool_result(name: str, result: str, failed: bool) -> str:
-    status = "Failed" if failed else "Done"
-    preview = _preview(result)
+def describe_tool_done(name: str, result: str, failed: bool) -> str:
     if name in {"read_file", "read_agent_resource", "load_command", "load_skill", "load_agent_prompt"}:
-        return f"{status}. Loaded {len(result.splitlines())} line(s).\n{preview}"
+        return f"loaded {len(result.splitlines())} line(s)"
     if name in {"list_files", "glob_files", "search_files", "list_agent_resources", "list_background_processes"}:
         count = 0 if result in {"", "no matches", "(empty)"} else len(result.splitlines())
-        return f"{status}. {count} item(s).\n{preview}"
+        return f"found {count} item(s)"
     if name == "request_user_input":
-        return f"{status}. User input received."
-    return f"{status}.\n{preview}"
+        return "user input received"
+    if failed:
+        return _preview(result, 240)
+    return "completed"
 
 
-def format_approval_request(name: str, arguments: dict[str, Any]) -> str:
+def tool_action_name(name: str) -> str:
+    labels = {
+        "browse_internet": "Fetched URL",
+        "check_system_tools": "Checked tools",
+        "list_files": "Listed files",
+        "glob_files": "Matched files",
+        "git": "Ran git",
+        "read_file": "Read file",
+        "touch_file": "Touched file",
+        "write_file": "Wrote file",
+        "edit_file": "Edited file",
+        "run_command": "Ran shell command",
+        "start_background_process": "Started background process",
+        "read_background_process": "Read background output",
+        "stop_background_process": "Stopped background process",
+        "list_background_processes": "Listed background processes",
+        "request_user_input": "Asked for input",
+        "record_workspace_server": "Recorded workspace server",
+        "search_files": "Searched files",
+        "list_agent_resources": "Listed resources",
+        "read_agent_resource": "Read resource",
+        "load_command": "Loaded command",
+        "load_skill": "Loaded skill",
+        "load_agent_prompt": "Loaded agent prompt",
+        "update_todos": "Updated task list",
+        "run_plugin_hook": "Ran plugin hook",
+    }
+    return labels.get(name, f"Ran {name}")
+
+
+def tool_failed_action_name(name: str) -> str:
+    action = tool_action_name(name)
+    if action.startswith("Ran "):
+        return "Failed " + action.removeprefix("Ran ")
+    if action.endswith("ed"):
+        return "Failed to " + action[:-2].lower()
+    return "Failed " + action.lower()
+
+
+def approval_command_summary(name: str, arguments: dict[str, Any]) -> str:
     command = str(arguments.get("command", "")).strip()
-    cwd = str(arguments.get("cwd", ".")).strip() or "."
-    timeout = arguments.get("max_time_seconds")
-    rows = [
-        f"Tool: {name}",
-        f"cwd: {cwd}",
-        f"command: {command or '(missing command)'}",
-    ]
-    if timeout is not None:
-        rows.append(f"max_time_seconds: {timeout}")
-    return "\n".join(rows)
+    if command:
+        return command
+    if name == "git":
+        git_command = str(arguments.get("command", "")).strip()
+        return f"git {git_command}" if git_command else "git"
+    return tool_action_name(name).lower()
 
 
 @dataclass
@@ -132,7 +167,7 @@ class AgentServer:
         base_system_message = {
             "role": "system",
             "content": (
-                "You are a coding agent running in a terminal. "
+                "You are Mate, a coding companion running in a terminal. "
                 f"Your workspace is {workspace_path}. "
                 f"Agent resources are available at {resource_root}. "
                 "Use tools to inspect, search, create, and edit files. "
@@ -159,11 +194,10 @@ class AgentServer:
                 f"answering the first user request:\n{project_context}"
             ),
         }
-        ui.panel(
-            "Agent Terminal",
+        ui.banner(
+            "Mate",
             f"Workspace: {workspace_path}\nResources: {resource_root}\nModel: {model}\n\n"
             "Type a request, /help for commands, or exit/quit to close.",
-            ui.BLUE,
         )
         ui.panel("Project Structure", project_context, ui.CYAN)
         return cls(client=client, model=model, ui=ui, messages=[base_system_message, project_message])
@@ -187,43 +221,49 @@ class AgentServer:
     def _tool_message(self, tool_call: Any) -> dict[str, Any]:
         name = tool_call.function.name
         failed = False
+        arguments: dict[str, Any] = {}
         try:
             arguments = _json_arguments(tool_call.function.arguments)
-            self.ui.status("Tool", describe_tool_start(name, arguments), self.ui.MAGENTA)
+            self.ui.activity("Working", describe_tool_start(name, arguments), self.ui.MAGENTA)
             requires_approval = name in tools.APPROVAL_REQUIRED_TOOLS or (
                 name == "git" and tools.git_requires_approval(str(arguments.get("command", "")))
             )
             if requires_approval and not self._confirm_tool_execution(name, arguments):
                 raise PermissionError("user denied command approval")
-            result = tools.TOOLS[name](**arguments)
+            with self.ui.working(describe_tool_start(name, arguments)):
+                result = tools.TOOLS[name](**arguments)
         except Exception as exc:
             failed = True
             result = f"ERROR: {type(exc).__name__}: {exc}"
-            self.ui.status("Tool", name, self.ui.RED)
-
-        human_summary = describe_tool_result(name, str(result), failed)
-        self.ui.panel("Tool Result", human_summary, self.ui.RED if failed else self.ui.GREEN)
+        detail = describe_tool_done(name, str(result), failed)
+        color = self.ui.RED if failed else self.ui.GREEN
+        action = tool_failed_action_name(name) if failed else tool_action_name(name)
+        self.ui.activity(action, detail, color)
         return {"role": "tool", "tool_call_id": tool_call.id, "content": str(result)}
 
     def _confirm_tool_execution(self, name: str, arguments: dict[str, Any]) -> bool:
         if os.getenv("AGENT_AUTO_APPROVE_COMMANDS", "").lower() in {"1", "true", "yes"}:
+            self.ui.success(f"You approved Mate to run `{approval_command_summary(name, arguments)}` automatically")
             return True
-        self.ui.panel("Approval Required", format_approval_request(name, arguments), self.ui.YELLOW)
+        summary = approval_command_summary(name, arguments)
         while True:
-            answer = self.ui.prompt("Approve command? [y/N] ").strip().lower()
+            answer = self.ui.transient_prompt(f"Allow Mate to run `{summary}`? [y/N] ").strip().lower()
             if answer in {"y", "yes"}:
+                self.ui.success(f"You approved Mate to run `{summary}` this time")
                 return True
             if answer in {"", "n", "no"}:
+                self.ui.warning(f"You denied Mate permission to run `{summary}`")
                 return False
 
     def _run_agent_until_answer(self) -> str:
         while True:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=self.messages,
-                tools=tools.TOOL_DEFINITIONS,
-                tool_choice="auto",
-            )
+            with self.ui.working("Mate is thinking"):
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=self.messages,
+                    tools=tools.TOOL_DEFINITIONS,
+                    tool_choice="auto",
+                )
             message = response.choices[0].message
             self.messages.append(message.model_dump(exclude_none=True))
 
@@ -241,9 +281,10 @@ class AgentServer:
                 return answer
 
             try:
-                assessment = self._assess_answer(user_goal, answer)
+                with self.ui.working("Checking result"):
+                    assessment = self._assess_answer(user_goal, answer)
             except Exception as exc:
-                self.ui.panel("Harness", f"Skipped response check ({type(exc).__name__}: {exc})", self.ui.YELLOW)
+                self.ui.activity("Worked on result", f"check skipped ({type(exc).__name__}: {exc})", self.ui.YELLOW)
                 return answer
 
             aligned = bool(assessment.get("aligned"))
@@ -252,19 +293,19 @@ class AgentServer:
             follow_up = str(assessment.get("follow_up_prompt", "")).strip()
             if aligned:
                 if reason:
-                    self.ui.panel("Harness", f"Response looks aligned. {reason}", self.ui.CYAN)
+                    self.ui.activity("Worked on result", reason, self.ui.CYAN)
                 return answer
             if not can_improve or not follow_up:
                 if reason:
-                    self.ui.panel("Harness", f"Response may be incomplete. {reason}", self.ui.YELLOW)
+                    self.ui.activity("Worked on result", reason, self.ui.YELLOW)
                 return answer
 
-            self.ui.panel("Harness", f"Asking the agent for another pass. {reason}", self.ui.YELLOW)
+            self.ui.activity("Worked on result", f"taking another pass. {reason}".strip(), self.ui.YELLOW)
             self.messages.append(
                 {
                     "role": "user",
                     "content": (
-                        "Quality harness feedback: your previous answer may not fully satisfy the user. "
+                        "Result check feedback: your previous answer may not fully satisfy the user. "
                         "Use any relevant tools and improve the answer. "
                         f"Reason: {reason}\nFollow-up instruction: {follow_up}"
                     ),
@@ -280,7 +321,7 @@ class AgentServer:
                 {
                     "role": "system",
                     "content": (
-                        "You are a strict production QA harness for a terminal coding agent. "
+                        "You are a strict production result checker for Mate, a terminal coding companion. "
                         "Decide whether the assistant's response satisfies the user's latest prompt. "
                         "If it falls short and tools or more inspection could help, request another pass. "
                         "Return only JSON with keys: aligned (boolean), can_improve_with_tools (boolean), "
@@ -291,7 +332,7 @@ class AgentServer:
                     "role": "user",
                     "content": (
                         f"User prompt:\n{user_goal}\n\n"
-                        f"Assistant response:\n{answer}\n\n"
+                        f"Candidate response:\n{answer}\n\n"
                         "Assess whether the response is complete, directly responsive, and honest about verification."
                     ),
                 },

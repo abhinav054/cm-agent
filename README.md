@@ -1,6 +1,6 @@
-# Agent Terminal
+# Mate
 
-A small Python terminal agent that talks to an OpenAI-compatible API and can:
+Mate is a small Python terminal coding companion that talks to an OpenAI-compatible API and can:
 
 - browse the internet with `curl`
 - list files
@@ -16,19 +16,19 @@ A small Python terminal agent that talks to an OpenAI-compatible API and can:
 - record workspace server launch commands for service creation
 - search files
 - load copied commands, agents, skills, and hooks
-- check its final answer with a bounded QA harness before returning it
+- check its final answer with a bounded result check before returning it
 
-The agent only reads, writes, and runs workspace commands inside the workspace
+Mate only reads, writes, and runs workspace commands inside the workspace
 directory you pass on startup.
 
-On startup, the terminal agent captures and displays a project structure summary
-for the selected workspace, then includes that context in the agent prompt so it
+On startup, Mate captures and displays a project structure summary
+for the selected workspace, then includes that context in the model prompt so it
 orients itself before acting.
 
 ## Architecture
 
 - `agent_terminal/main.py`: terminal client, runtime commands, and input loop
-- `agent_terminal/server.py`: model loop, tool-call execution, approval routing, and answer harness
+- `agent_terminal/server.py`: model loop, tool-call execution, approval routing, and result checking
 - `agent_terminal/tools.py`: workspace-safe tools, schemas, Git, files, commands, resources, and background processes
 - `agent_terminal/ui.py`: terminal panels, colors, prompts, and colored file diffs
 
@@ -53,7 +53,7 @@ For compatible local servers, change `OPENAI_BASE_URL` and `OPENAI_MODEL`.
 
 ## Workspace Servers
 
-When the agent runs a common long-running server command, such as `npm run dev`,
+When Mate runs a common long-running server command, such as `npm run dev`,
 `python -m http.server`, `uvicorn ...`, or `go run ...`, it appends a JSON line
 to `.codex/workspace-servers.jsonl` in the active workspace. Each record includes
 the workspace path, relative cwd, command, timestamp, and reason, so a separate
@@ -61,7 +61,12 @@ service manager can create or reconcile a service for that server.
 
 ## Command Approval and Background Processes
 
-When the agent asks to use `run_command`, `start_background_process`, or a
+The terminal UI shows friendly activity updates while Mate works, including
+elapsed time for model and tool work. Tool output is sent back to the model but
+the shell shows concise status lines such as `Ran shell command`, `Read file`,
+or `Edited file` instead of raw tool-result dumps.
+
+When Mate asks to use `run_command`, `start_background_process`, or a
 mutating Git command, the terminal shows an approval panel with the command, cwd,
 and timeout. Approve with `y`/`yes`, or press Enter to deny. Set
 `AGENT_AUTO_APPROVE_COMMANDS=1` only for trusted local sessions where you do not
@@ -72,11 +77,11 @@ through the `git` tool without shell execution. Mutating commands such as `add`,
 `commit`, `restore`, `checkout`, `reset`, `push`, and `pull` require approval.
 
 Long-running commands should use `start_background_process` instead of
-`run_command`. The agent can then call `list_background_processes`,
+`run_command`. Mate can then call `list_background_processes`,
 `read_background_process`, and `stop_background_process`. You can also type
 `/backgrounds` to see processes started in the current terminal session.
 
-When the agent needs information that is not available in the workspace, such as
+When Mate needs information that is not available in the workspace, such as
 database URLs, API keys, credentials, tokens, or deployment settings, it should
 use `request_user_input`. Sensitive values are requested with hidden terminal
 input so they are not echoed on screen.
@@ -84,10 +89,12 @@ input so they are not echoed on screen.
 ## Run
 
 ```bash
-agent-terminal /path/to/the/folder/you/want/the/agent/to-edit
+mate /path/to/the/folder/you/want/mate/to-edit
 ```
 
-You can also use `agent-terminal --workspace /path/to/workspace`.
+You can also use `mate --workspace /path/to/workspace`.
+If you omit the workspace, `mate` creates a new temporary workspace
+directory under `/tmp`.
 
 Type requests such as:
 
@@ -97,11 +104,11 @@ Search for TODO comments.
 Browse https://example.com and summarize it.
 ```
 
-Use `exit` or `quit` to close the terminal agent.
+Use `exit` or `quit` to close Mate.
 
 ## Runtime Commands
 
-Inside the agent terminal:
+Inside Mate:
 
 ```text
 /help
@@ -117,9 +124,9 @@ Inside the agent terminal:
 `/steer` adds persistent guidance for later turns. `/reset` clears the conversation
 history while preserving active steering prompts.
 
-The answer harness runs after each assistant response. If the response does not
+The result check runs after each response. If the response does not
 appear aligned with the latest prompt and more tool work could help, it asks the
-agent to take another pass with that feedback. Control retries with:
+Mate to take another pass with that feedback. Control retries with:
 
 ```bash
 export AGENT_HARNESS_MAX_RETRIES=2
