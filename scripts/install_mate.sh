@@ -11,11 +11,57 @@ RELEASE_URL="${RELEASE_URL:-}"
 SOURCE_DIR="${SOURCE_DIR:-}"
 OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 OPENAI_BASE_URL="${OPENAI_BASE_URL:-}"
-OPENAI_MODEL="${OPENAI_MODEL:-gpt-4.1-mini}"
+OPENAI_MODEL="${OPENAI_MODEL:-}"
+
+usage() {
+  echo "Usage: $0 [--release-url URL | --source-dir DIR] [--install-dir DIR] [--bin-dir DIR] [--api-key KEY] [--base-url URL] [--model MODEL]"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --release-url)
+      RELEASE_URL="${2:-}"
+      shift 2
+      ;;
+    --source-dir)
+      SOURCE_DIR="${2:-}"
+      shift 2
+      ;;
+    --install-dir)
+      INSTALL_DIR="${2:-}"
+      shift 2
+      ;;
+    --bin-dir)
+      BIN_DIR="${2:-}"
+      shift 2
+      ;;
+    --api-key)
+      OPENAI_API_KEY="${2:-}"
+      shift 2
+      ;;
+    --base-url)
+      OPENAI_BASE_URL="${2:-}"
+      shift 2
+      ;;
+    --model)
+      OPENAI_MODEL="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
 
 if [[ -z "$SOURCE_DIR" && -z "$RELEASE_URL" ]]; then
   echo "Set RELEASE_URL to a Mate release tarball URL, or SOURCE_DIR to a local Mate source folder." >&2
-  echo "Example: RELEASE_URL=https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz bash install_mate.sh" >&2
+  echo "Example: bash install_mate.sh --release-url https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz" >&2
   exit 1
 fi
 
@@ -45,6 +91,7 @@ prompt_if_missing() {
 
 prompt_if_missing OPENAI_API_KEY "OpenAI-compatible API key" "" 1
 prompt_if_missing OPENAI_BASE_URL "OpenAI-compatible base URL" "https://api.openai.com/v1"
+prompt_if_missing OPENAI_MODEL "OpenAI-compatible model" "gpt-4.1-mini"
 
 quote_env_value() {
   printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"

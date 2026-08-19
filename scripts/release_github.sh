@@ -37,6 +37,7 @@ cp "$ROOT_DIR/install_agent.sh" "$ARCHIVE_ROOT/install_agent.sh"
 cp "$ROOT_DIR/scripts/install_mate.sh" "$ARCHIVE_ROOT/install_mate.sh"
 find "$ARCHIVE_ROOT" -type d \( -name __pycache__ -o -name .build-venv \) -prune -exec rm -rf {} +
 find "$ARCHIVE_ROOT" -type f -name '*.pyc' -delete
+rm -f "$ARCHIVE_ROOT/.env" "$ARCHIVE_ROOT/.mate/keys.env"
 
 tar -C "$DIST_DIR" -czf "$DIST_DIR/mate-$VERSION.tar.gz" "mate-$VERSION"
 
