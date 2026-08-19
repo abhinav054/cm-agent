@@ -73,7 +73,7 @@ if [[ -z "$GITHUB_REPOSITORY" ]]; then
 fi
 
 if [[ -z "$GITHUB_REPOSITORY" || "$GITHUB_REPOSITORY" != */* ]]; then
-  echo "Set GITHUB_REPOSITORY as owner/repo, for example: GITHUB_REPOSITORY=you/mate" >&2
+  echo "Set GITHUB_REPOSITORY as owner/repo, for example: GITHUB_REPOSITORY=abhinav054/mate" >&2
   exit 1
 fi
 

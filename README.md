@@ -13,10 +13,8 @@ loads reusable commands, agents, hooks, and skills from `agent_resources`.
 Download the latest installer and run it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/install_latest_mate.sh -o install_latest_mate.sh
-chmod +x install_latest_mate.sh
-./install_latest_mate.sh \
-  --repo OWNER/REPO \
+curl -fsSL https://raw.githubusercontent.com/abhinav054/mate/main/install_latest_mate.sh | bash -s -- \
+  --repo abhinav054/mate \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini
@@ -26,7 +24,7 @@ From a checked-out repo, run the latest-release installer directly:
 
 ```bash
 ./install_latest_mate.sh \
-  --repo OWNER/REPO \
+  --repo abhinav054/mate \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini
@@ -36,7 +34,7 @@ To install a specific release tarball instead:
 
 ```bash
 ./install_mate.sh \
-  --release-url https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz \
+  --release-url https://github.com/abhinav054/mate/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini
@@ -250,49 +248,25 @@ bash -n scripts/install_latest_mate.sh
 scripts/release_github.sh
 ```
 
-The release build writes artifacts to `dist/`.
-
-## Release
-
-From the repo root, build local release artifacts with:
-
-```bash
-scripts/release_github.sh
-```
-
-Publish a GitHub release with the GitHub CLI:
-
-```bash
-gh auth login
-PUBLISH=1 scripts/release_github.sh
-```
-
-Or publish without `gh` by using a GitHub token:
-
-```bash
-GITHUB_TOKEN=ghp_xxx GITHUB_REPOSITORY=OWNER/REPO PUBLISH=1 scripts/release_github.sh
-```
-
-Optional release environment variables:
-
-```bash
-TAG=v0.1.0
-RELEASE_TITLE="Mate v0.1.0"
-NOTES_FILE=release-notes.md
-```
-
-Release users install with:
-
-```bash
-./install_latest_mate.sh \
-  --repo OWNER/REPO \
-  --api-key your-key \
-  --base-url https://api.openai.com/v1 \
-  --model gpt-4.1-mini
-```
-
 For local testing, install from a checked-out source folder:
 
 ```bash
 ./scripts/install_mate.sh --source-dir /path/to/mate --api-key your-key --base-url https://api.openai.com/v1
 ```
+
+## Merge Requests
+
+Changes should land through merge requests. Create a branch from `main`, make a
+focused change, run the local verification commands above, then open a merge
+request against `main`.
+
+Good merge requests include:
+
+- a short description of the user-facing change
+- the commands you ran to verify it
+- screenshots or terminal output when the change affects the TUI
+- notes about config, installer, or release behavior changes
+
+After review, accepted merge requests are merged into `main`. Maintainers use
+the merged state of `main` to build and publish release artifacts, so changes are
+included in releases only after they have been reviewed and merged.

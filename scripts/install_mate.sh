@@ -61,7 +61,7 @@ done
 
 if [[ -z "$SOURCE_DIR" && -z "$RELEASE_URL" ]]; then
   echo "Set RELEASE_URL to a Mate release tarball URL, or SOURCE_DIR to a local Mate source folder." >&2
-  echo "Example: bash install_mate.sh --release-url https://github.com/OWNER/REPO/releases/download/v0.1.0/mate-0.1.0.tar.gz" >&2
+  echo "Example: bash install_mate.sh --release-url https://github.com/abhinav054/mate/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz" >&2
   exit 1
 fi
 
