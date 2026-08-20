@@ -35,7 +35,7 @@ cp -R "$ROOT_DIR/.mate" "$ARCHIVE_ROOT/.mate"
 cp "$ROOT_DIR/run_agent.sh" "$ARCHIVE_ROOT/run_agent.sh"
 cp "$ROOT_DIR/install_agent.sh" "$ARCHIVE_ROOT/install_agent.sh"
 cp "$ROOT_DIR/scripts/install_mate.sh" "$ARCHIVE_ROOT/install_mate.sh"
-cp "$ROOT_DIR/install_latest_mate.sh" "$ARCHIVE_ROOT/install_latest_mate.sh"
+cp "$ROOT_DIR/scripts/install_latest_mate.sh" "$ARCHIVE_ROOT/install_latest_mate.sh"
 find "$ARCHIVE_ROOT" -type d \( -name __pycache__ -o -name .build-venv \) -prune -exec rm -rf {} +
 find "$ARCHIVE_ROOT" -type f -name '*.pyc' -delete
 rm -f "$ARCHIVE_ROOT/.env" "$ARCHIVE_ROOT/.mate/keys.env"

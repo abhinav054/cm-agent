@@ -13,8 +13,7 @@ loads reusable commands, agents, hooks, and skills from `agent_resources`.
 Download the latest installer and run it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/abhinav054/mate/main/install_latest_mate.sh | bash -s -- \
-  --repo abhinav054/mate \
+curl -fsSL https://raw.githubusercontent.com/abhinav054/mate/main/scripts/install_latest_mate.sh | bash -s -- \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini
@@ -23,8 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/abhinav054/mate/main/install_latest
 From a checked-out repo, run the latest-release installer directly:
 
 ```bash
-./install_latest_mate.sh \
-  --repo abhinav054/mate \
+./scripts/install_latest_mate.sh \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini

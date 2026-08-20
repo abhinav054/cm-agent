@@ -5,11 +5,11 @@ fi
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="${GITHUB_REPOSITORY:-}"
+REPO="abhinav054/mate"
 INSTALL_ARGS=()
 
 usage() {
-  echo "Usage: $0 --repo OWNER/REPO [install_mate options]"
+  echo "Usage: $0 [install_mate options]"
   echo
   echo "Install options are passed through, for example:"
   echo "  --api-key KEY --base-url URL --model MODEL --install-dir DIR --bin-dir DIR"
@@ -17,10 +17,6 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --repo)
-      REPO="${2:-}"
-      shift 2
-      ;;
     -h|--help)
       usage
       exit 0
@@ -36,11 +32,6 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
-if [[ -z "$REPO" || "$REPO" != */* ]]; then
-  echo "Set --repo OWNER/REPO or GITHUB_REPOSITORY=OWNER/REPO." >&2
-  exit 1
-fi
 
 if ! command -v curl >/dev/null 2>&1; then
   echo "curl is required to download the latest Mate release." >&2
