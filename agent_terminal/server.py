@@ -167,7 +167,7 @@ class AgentServer:
         base_url = os.getenv(base_url_env, "https://api.openai.com/v1")
         model = os.getenv(model_env, "gpt-4.1-mini")
         if not api_key:
-            raise SystemExit("OPENAI_API_KEY is required")
+            raise RuntimeError(f"{api_key_env} is required")
 
         client = OpenAI(api_key=api_key, base_url=base_url)
         resource_root = tools.resource_root()

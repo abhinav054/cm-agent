@@ -38,45 +38,43 @@ To install a specific release tarball instead:
   --model gpt-4.1-mini
 ```
 
-To test installing from a GitHub tarball in Docker:
+To build the Docker image and run Mate against the current directory:
 
 ```bash
-docker build -f docker_test/Dockerfile -t mate-release-test .
-docker run --rm mate-release-test
+scripts/docker_local.sh
+```
+
+To run only the install smoke test:
+
+```bash
+scripts/docker_local.sh --smoke
 ```
 
 By default this uses the current `main` tarball. To pin a specific release
 tarball:
 
 ```bash
-docker build \
-  -f docker_test/Dockerfile \
-  --build-arg RELEASE_URL=https://github.com/abhinav054/mate/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz \
-  -t mate-release-test .
+RELEASE_URL=https://github.com/abhinav054/mate/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz \
+  scripts/docker_local.sh
 ```
 
-To use Mate from Docker, mount the project you want Mate to work on at
-`/workspace` and run the `mate` command with an interactive terminal:
+To pass a custom command to Docker:
 
 ```bash
-docker run --rm -it \
-  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
-  -e OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}" \
-  -e OPENAI_MODEL="${OPENAI_MODEL:-gpt-4.1-mini}" \
-  -v "$PWD:/workspace" \
-  mate-release-test \
-  mate /workspace
+scripts/docker_local.sh bash
 ```
 
 To use Docker with another local project, run the command from that project
-directory or replace `$PWD` with an absolute path.
+directory or set `WORKSPACE_DIR` to an absolute path.
+
+The helper passes fixed local-test values for `OPENAI_API_KEY`,
+`OPENAI_BASE_URL`, and `OPENAI_MODEL` into the container.
 
 The installer saves model settings to Mate home. Any missing value is read from
 the matching environment variable first, then prompted interactively.
 
 Environment fallback names are `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and
-`OPENAI_MODEL`. Environment variables already set in your shell take precedence
-when Mate runs.
+`OPENAI_MODEL`.
 
 ## Run
 

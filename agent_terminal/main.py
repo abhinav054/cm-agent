@@ -5,6 +5,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from openai import APIConnectionError, APIError, AuthenticationError, BadRequestError, RateLimitError
+
 from . import tools
 from .server import AgentServer
 from .ui import TerminalUI as UI
@@ -32,6 +34,20 @@ def _resolve_workspace(args: argparse.Namespace) -> str | Path:
     if workspace:
         return workspace
     return Path(tempfile.mkdtemp(prefix="mate-"))
+
+
+def _friendly_error(exc: BaseException) -> str:
+    if isinstance(exc, AuthenticationError):
+        return "Authentication failed. Check OPENAI_API_KEY in your environment or Mate config."
+    if isinstance(exc, RateLimitError):
+        return "The model provider rate-limited the request. Wait a moment and try again."
+    if isinstance(exc, APIConnectionError):
+        return "Could not connect to the model provider. Check your network and OPENAI_BASE_URL."
+    if isinstance(exc, BadRequestError):
+        return f"The model provider rejected the request: {exc}"
+    if isinstance(exc, APIError):
+        return f"The model provider returned an error: {exc}"
+    return f"{type(exc).__name__}: {exc}"
 
 
 def _print_help() -> None:
@@ -109,7 +125,11 @@ def _handle_runtime_command(server: AgentServer, user_input: str) -> bool:
 def main() -> None:
     args = _parse_args()
     workspace = _resolve_workspace(args)
-    server = AgentServer.create(workspace, UI)
+    try:
+        server = AgentServer.create(workspace, UI)
+    except Exception as exc:
+        UI.panel("Error", _friendly_error(exc), UI.RED)
+        return
 
     while True:
         try:
@@ -126,7 +146,15 @@ def main() -> None:
             continue
 
         started = time.monotonic()
-        answer = server.run_turn(user_input)
+        try:
+            answer = server.run_turn(user_input)
+        except KeyboardInterrupt:
+            print()
+            UI.panel("Interrupted", "Request cancelled.", UI.YELLOW)
+            continue
+        except Exception as exc:
+            UI.panel("Error", _friendly_error(exc), UI.RED)
+            continue
         UI.answer(answer, time.monotonic() - started)
 
 
