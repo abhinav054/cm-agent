@@ -11,8 +11,9 @@ PACKAGE_DIR="$ROOT_DIR"
 
 cd "$ROOT_DIR"
 
-VERSION="$("$PYTHON_BIN" -c 'import tomllib, pathlib; data=tomllib.loads(pathlib.Path("pyproject.toml").read_text()); print(data["project"]["version"])' 2>/dev/null || "$PYTHON_BIN" -c 'import pathlib, re; text=pathlib.Path("pyproject.toml").read_text(); print(re.search(r"version = \"([^\"]+)\"", text).group(1))')"
-TAG="${TAG:-v$VERSION}"
+LATEST_TAG="$(git describe --tags --abbrev=0)"
+TAG="${TAG:-$LATEST_TAG}"
+VERSION="${TAG#v}"
 RELEASE_TITLE="${RELEASE_TITLE:-Mate $TAG}"
 NOTES_FILE="${NOTES_FILE:-}"
 PUBLISH="${PUBLISH:-0}"
@@ -20,6 +21,16 @@ GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}"
 
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
+
+PYPROJECT_FILE="$ROOT_DIR/pyproject.toml"
+PYPROJECT_BACKUP="$(mktemp "${TMPDIR:-/tmp}/mate-pyproject.XXXXXX")"
+cp "$PYPROJECT_FILE" "$PYPROJECT_BACKUP"
+restore_pyproject() {
+  cp "$PYPROJECT_BACKUP" "$PYPROJECT_FILE"
+  rm -f "$PYPROJECT_BACKUP"
+}
+trap restore_pyproject EXIT
+"$PYTHON_BIN" -c 'import pathlib, re, sys; path = pathlib.Path("pyproject.toml"); text = path.read_text(); path.write_text(re.sub(r"^version = \"[^\"]+\"", f"version = \"{sys.argv[1]}\"", text, count=1, flags=re.MULTILINE))' "$VERSION"
 
 "$PYTHON_BIN" -m venv "$DIST_DIR/.build-venv"
 # shellcheck disable=SC1091

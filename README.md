@@ -41,7 +41,7 @@ To install a specific release tarball instead:
 To test installing from a GitHub tarball in Docker:
 
 ```bash
-docker build -f "docker test/Dockerfile" -t mate-release-test .
+docker build -f docker_test/Dockerfile -t mate-release-test .
 docker run --rm mate-release-test
 ```
 
@@ -50,7 +50,7 @@ tarball:
 
 ```bash
 docker build \
-  -f "docker test/Dockerfile" \
+  -f docker_test/Dockerfile \
   --build-arg RELEASE_URL=https://github.com/abhinav054/mate/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz \
   -t mate-release-test .
 ```
