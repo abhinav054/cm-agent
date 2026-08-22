@@ -33,43 +33,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if ! command -v curl >/dev/null 2>&1; then
-  echo "curl is required to download the latest Mate release." >&2
-  exit 1
-fi
-
 if ! command -v python3 >/dev/null 2>&1; then
   echo "python3 is required to install Mate." >&2
   exit 1
 fi
-
-LATEST_JSON="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest")"
-RELEASE_URL="$(printf '%s' "$LATEST_JSON" | python3 -c '
-import json
-import sys
-
-release = json.load(sys.stdin)
-assets = release.get("assets", [])
-for asset in assets:
-    name = asset.get("name", "")
-    if name.startswith("mate-") and name.endswith("-bundle.tar.gz"):
-        print(asset["browser_download_url"])
-        break
-else:
-    for asset in assets:
-        name = asset.get("name", "")
-        if name.startswith("mate-") and name.endswith(".tar.gz"):
-            print(asset["browser_download_url"])
-            break
-')"
-
-if [[ -z "$RELEASE_URL" ]]; then
-  echo "Could not find a Mate release tarball on the latest release for $REPO." >&2
-  exit 1
-fi
-
-echo "Installing latest Mate release from:"
-echo "  $RELEASE_URL"
 
 INSTALLER="$SCRIPT_DIR/install_mate.sh"
 if [[ ! -f "$INSTALLER" ]]; then
@@ -80,4 +47,4 @@ if [[ ! -f "$INSTALLER" ]]; then
   chmod +x "$INSTALLER"
 fi
 
-exec "$INSTALLER" --release-url "$RELEASE_URL" "${INSTALL_ARGS[@]}"
+exec "$INSTALLER" "${INSTALL_ARGS[@]}"

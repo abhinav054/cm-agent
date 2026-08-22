@@ -28,11 +28,10 @@ From a checked-out repo, run the latest-release installer directly:
   --model gpt-4.1-mini
 ```
 
-To install a specific release tarball instead:
+You can also install the latest release through `install_mate.sh`:
 
 ```bash
 ./install_mate.sh \
-  --release-url https://github.com/abhinav054/mate/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz \
   --api-key your-key \
   --base-url https://api.openai.com/v1 \
   --model gpt-4.1-mini
@@ -54,7 +53,7 @@ By default this uses the current `main` tarball. To pin a specific release
 tarball:
 
 ```bash
-RELEASE_URL=https://github.com/abhinav054/mate/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz \
+RELEASE_URL=https://github.com/abhinav054/mate/releases/download/vX.Y.Z/mate-X.Y.Z-bundle.tar.gz \
   scripts/docker_local.sh
 ```
 

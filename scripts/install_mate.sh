@@ -7,6 +7,7 @@ set -euo pipefail
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/share/mate}"
 BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+REPO="${REPO:-abhinav054/mate}"
 RELEASE_URL="${RELEASE_URL:-}"
 SOURCE_DIR="${SOURCE_DIR:-}"
 OPENAI_API_KEY="${OPENAI_API_KEY:-}"
@@ -15,6 +16,7 @@ OPENAI_MODEL="${OPENAI_MODEL:-}"
 
 usage() {
   echo "Usage: $0 [--release-url URL | --source-dir DIR] [--install-dir DIR] [--bin-dir DIR] [--api-key KEY] [--base-url URL] [--model MODEL]"
+  echo "If neither --release-url nor --source-dir is set, the latest GitHub release tarball is used."
 }
 
 while [[ $# -gt 0 ]]; do
@@ -59,10 +61,47 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+latest_release_url() {
+  local latest_json
+
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "curl is required to discover the latest Mate release." >&2
+    return 1
+  fi
+  if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    echo "$PYTHON_BIN is required to discover the latest Mate release." >&2
+    return 1
+  fi
+
+  latest_json="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest")"
+  printf '%s' "$latest_json" | "$PYTHON_BIN" -c '
+import json
+import sys
+
+release = json.load(sys.stdin)
+assets = release.get("assets", [])
+for asset in assets:
+    name = asset.get("name", "")
+    if name.startswith("mate-") and name.endswith("-bundle.tar.gz"):
+        print(asset["browser_download_url"])
+        break
+else:
+    for asset in assets:
+        name = asset.get("name", "")
+        if name.startswith("mate-") and name.endswith(".tar.gz"):
+            print(asset["browser_download_url"])
+            break
+'
+}
+
 if [[ -z "$SOURCE_DIR" && -z "$RELEASE_URL" ]]; then
-  echo "Set RELEASE_URL to a Mate release tarball URL, or SOURCE_DIR to a local Mate source folder." >&2
-  echo "Example: bash install_mate.sh --release-url https://github.com/abhinav054/mate/releases/download/v0.1.0/mate-0.1.0-bundle.tar.gz" >&2
-  exit 1
+  RELEASE_URL="$(latest_release_url)"
+  if [[ -z "$RELEASE_URL" ]]; then
+    echo "Could not find a Mate release tarball on the latest release for $REPO." >&2
+    exit 1
+  fi
+  echo "Installing latest Mate release from:"
+  echo "  $RELEASE_URL"
 fi
 
 prompt_if_missing() {
