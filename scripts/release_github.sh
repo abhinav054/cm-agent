@@ -60,12 +60,16 @@ rm -f "$ARCHIVE_ROOT/.env" "$ARCHIVE_ROOT/.mate/keys.env"
 
 tar -C "$DIST_DIR" -czf "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "mate-$VERSION"
 
-LATEST_RELEASE_JSON="$DIST_DIR/latest-release.json"
+LATEST_RELEASE_TXT="$DIST_DIR/latest-release.txt"
 BUNDLE_URL=""
 if [[ "$GITHUB_REPOSITORY" == */* ]]; then
   BUNDLE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/mate-$VERSION-bundle.tar.gz"
 fi
-LATEST_RELEASE_JSON="$LATEST_RELEASE_JSON" TAG="$TAG" VERSION="$VERSION" BUNDLE_URL="$BUNDLE_URL" "$PYTHON_BIN" -c 'import json, os, pathlib; pathlib.Path(os.environ["LATEST_RELEASE_JSON"]).write_text(json.dumps({"tag": os.environ["TAG"], "version": os.environ["VERSION"], "bundle_url": os.environ["BUNDLE_URL"]}, indent=2) + "\n")'
+{
+  printf 'tag=%s\n' "$TAG"
+  printf 'version=%s\n' "$VERSION"
+  printf 'bundle_url=%s\n' "$BUNDLE_URL"
+} > "$LATEST_RELEASE_TXT"
 
 echo "Built release artifacts:"
 find "$DIST_DIR" -maxdepth 2 -type f -printf "  %p\n" | sort
@@ -84,9 +88,9 @@ fi
 
 if command -v gh >/dev/null 2>&1; then
   if [[ -n "$NOTES_FILE" ]]; then
-    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_JSON" --title "$RELEASE_TITLE" --notes-file "$NOTES_FILE"
+    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_TXT" --title "$RELEASE_TITLE" --notes-file "$NOTES_FILE"
   else
-    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_JSON" --title "$RELEASE_TITLE" --generate-notes
+    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_TXT" --title "$RELEASE_TITLE" --generate-notes
   fi
   echo "Published GitHub release $TAG."
   exit 0
@@ -114,7 +118,7 @@ release_response="$(curl -fsSL \
 
 upload_url="$(printf '%s' "$release_response" | "$PYTHON_BIN" -c 'import json, sys; print(json.load(sys.stdin)["upload_url"].split("{", 1)[0])')"
 
-for asset in "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_JSON"; do
+for asset in "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_TXT"; do
   name="$(basename "$asset")"
   curl -fsSL \
     -X POST \

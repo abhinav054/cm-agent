@@ -62,57 +62,36 @@ while [[ $# -gt 0 ]]; do
 done
 
 latest_release_url() {
-  local latest_json release_metadata_url release_url
+  local release_metadata release_metadata_url release_url
 
   if ! command -v curl >/dev/null 2>&1; then
     echo "curl is required to discover the latest Mate release." >&2
     return 1
   fi
-  if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
-    echo "$PYTHON_BIN is required to discover the latest Mate release." >&2
+
+  release_metadata_url="https://github.com/$REPO/releases/latest/download/latest-release.txt"
+  if ! release_metadata="$(curl -fsSL "$release_metadata_url" 2>/dev/null)"; then
+    echo "Could not download latest release metadata: $release_metadata_url" >&2
     return 1
   fi
 
-  release_metadata_url="https://github.com/$REPO/releases/latest/download/latest-release.json"
-  if latest_json="$(curl -fsSL "$release_metadata_url" 2>/dev/null)"; then
-    release_url="$(printf '%s' "$latest_json" | "$PYTHON_BIN" -c '
-import json
-import sys
-
-release = json.load(sys.stdin)
-print(release.get("bundle_url", ""))
-' 2>/dev/null || true)"
-    if [[ -n "$release_url" ]]; then
-      printf '%s\n' "$release_url"
-      return
-    fi
+  release_url="$(printf '%s\n' "$release_metadata" | sed -n 's/^bundle_url=//p' | head -n 1)"
+  if [[ -z "$release_url" ]]; then
+    echo "Latest release metadata did not include bundle_url." >&2
+    return 1
+  fi
+  if [[ "$release_url" != *-bundle.tar.gz ]]; then
+    echo "Latest release metadata bundle_url is not a bundle tarball: $release_url" >&2
+    return 1
   fi
 
-  latest_json="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest")"
-  printf '%s' "$latest_json" | "$PYTHON_BIN" -c '
-import json
-import sys
-
-release = json.load(sys.stdin)
-assets = release.get("assets", [])
-for asset in assets:
-    name = asset.get("name", "")
-    if name.startswith("mate-") and name.endswith("-bundle.tar.gz"):
-        print(asset["browser_download_url"])
-        break
-else:
-    for asset in assets:
-        name = asset.get("name", "")
-        if name.startswith("mate-") and name.endswith(".tar.gz"):
-            print(asset["browser_download_url"])
-            break
-'
+  printf '%s\n' "$release_url"
 }
 
 if [[ -z "$SOURCE_DIR" && -z "$RELEASE_URL" ]]; then
   RELEASE_URL="$(latest_release_url)"
   if [[ -z "$RELEASE_URL" ]]; then
-    echo "Could not find a Mate release tarball on the latest release for $REPO." >&2
+    echo "Could not find a Mate bundle tarball on the latest release for $REPO." >&2
     exit 1
   fi
 fi
