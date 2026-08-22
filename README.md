@@ -49,8 +49,8 @@ To run only the install smoke test:
 scripts/docker_local.sh --smoke
 ```
 
-By default this uses the current `main` tarball. To pin a specific release
-tarball:
+By default this resolves the latest release bundle tarball. To pin a specific
+release tarball:
 
 ```bash
 RELEASE_URL=https://github.com/abhinav054/mate/releases/download/vX.Y.Z/mate-X.Y.Z-bundle.tar.gz \
