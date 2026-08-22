@@ -66,8 +66,10 @@ scripts/docker_local.sh bash
 To use Docker with another local project, run the command from that project
 directory or set `WORKSPACE_DIR` to an absolute path.
 
-The helper passes fixed local-test values for `OPENAI_API_KEY`,
-`OPENAI_BASE_URL`, and `OPENAI_MODEL` into the container.
+The helper reads `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` from
+the root `.env` file, then `.mate/keys.env`, and passes them into the container.
+Environment variables already set in your shell take precedence. Set `ENV_FILE`
+or `MATE_KEYS_FILE` to read another file.
 
 The installer saves model settings to Mate home. Any missing value is read from
 the matching environment variable first, then prompted interactively.
