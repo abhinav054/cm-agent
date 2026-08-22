@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 
 ARG RELEASE_URL="https://github.com/abhinav054/mate/archive/refs/heads/main.tar.gz"
+ARG RELEASE_CACHE_KEY="$RELEASE_URL"
 
 ENV PATH="/opt/mate/bin:${PATH}" \
     MATE_HOME="/opt/mate/app/.mate" \
@@ -12,6 +13,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
+    echo "$RELEASE_CACHE_KEY" > /tmp/mate-release-cache-key; \
     curl -fsSL https://raw.githubusercontent.com/abhinav054/mate/main/scripts/install_mate.sh -o /tmp/install_mate.sh; \
     bash /tmp/install_mate.sh \
       --release-url "$RELEASE_URL" \
