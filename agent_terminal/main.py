@@ -38,7 +38,7 @@ def _resolve_workspace(args: argparse.Namespace) -> str | Path:
 
 def _friendly_error(exc: BaseException) -> str:
     if isinstance(exc, AuthenticationError):
-        return "Authentication failed. Check OPENAI_API_KEY in your environment or Mate config."
+        return "The model provider rejected OPENAI_API_KEY. Check that the key matches OPENAI_BASE_URL and is still active."
     if isinstance(exc, RateLimitError):
         return "The model provider rate-limited the request. Wait a moment and try again."
     if isinstance(exc, APIConnectionError):

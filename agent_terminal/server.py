@@ -153,8 +153,10 @@ class AgentServer:
 
     @classmethod
     def create(cls, workspace: str | os.PathLike[str], ui: Any) -> "AgentServer":
-        config = mate_config.load_config()
         workspace_path = tools.set_workspace(workspace)
+        workspace_mate_home = workspace_path / ".mate"
+        config_home = None if os.getenv("MATE_HOME") else workspace_mate_home if workspace_mate_home.exists() else None
+        config = mate_config.load_config(config_home)
         tools.set_tool_ui(
             diff_handler=ui.diff,
             input_handler=lambda prompt, secret, default: _input_with_ui(ui, prompt, secret, default),
@@ -208,7 +210,7 @@ class AgentServer:
         }
         ui.banner(
             f"Mate {mate_version()}",
-            f"Workspace: {workspace_path}\nConfig: {config.mate_home}\nResources: {resource_root}\nModel: {model}\n\n"
+            f"Workspace: {workspace_path}\nConfig: {config.mate_home}\nResources: {resource_root}\nBase URL: {base_url}\nModel: {model}\n\n"
             "Type a request, /help for commands, or exit/quit to close.",
         )
         ui.panel("Project Structure", project_context, ui.CYAN)
