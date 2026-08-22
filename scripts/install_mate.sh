@@ -62,7 +62,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 latest_release_url() {
-  local latest_json
+  local latest_json release_metadata_url release_url
 
   if ! command -v curl >/dev/null 2>&1; then
     echo "curl is required to discover the latest Mate release." >&2
@@ -71,6 +71,21 @@ latest_release_url() {
   if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
     echo "$PYTHON_BIN is required to discover the latest Mate release." >&2
     return 1
+  fi
+
+  release_metadata_url="https://github.com/$REPO/releases/latest/download/latest-release.json"
+  if latest_json="$(curl -fsSL "$release_metadata_url" 2>/dev/null)"; then
+    release_url="$(printf '%s' "$latest_json" | "$PYTHON_BIN" -c '
+import json
+import sys
+
+release = json.load(sys.stdin)
+print(release.get("bundle_url", ""))
+' 2>/dev/null || true)"
+    if [[ -n "$release_url" ]]; then
+      printf '%s\n' "$release_url"
+      return
+    fi
   fi
 
   latest_json="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest")"

@@ -19,6 +19,11 @@ NOTES_FILE="${NOTES_FILE:-}"
 PUBLISH="${PUBLISH:-0}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}"
 
+if [[ -z "$GITHUB_REPOSITORY" ]]; then
+  origin_url="$(git config --get remote.origin.url || true)"
+  GITHUB_REPOSITORY="$(printf '%s' "$origin_url" | sed -E 's#^git@[^:]+:##; s#^https://[^/]+/##; s#\.git$##')"
+fi
+
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
@@ -55,6 +60,13 @@ rm -f "$ARCHIVE_ROOT/.env" "$ARCHIVE_ROOT/.mate/keys.env"
 
 tar -C "$DIST_DIR" -czf "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "mate-$VERSION"
 
+LATEST_RELEASE_JSON="$DIST_DIR/latest-release.json"
+BUNDLE_URL=""
+if [[ "$GITHUB_REPOSITORY" == */* ]]; then
+  BUNDLE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/mate-$VERSION-bundle.tar.gz"
+fi
+LATEST_RELEASE_JSON="$LATEST_RELEASE_JSON" TAG="$TAG" VERSION="$VERSION" BUNDLE_URL="$BUNDLE_URL" "$PYTHON_BIN" -c 'import json, os, pathlib; pathlib.Path(os.environ["LATEST_RELEASE_JSON"]).write_text(json.dumps({"tag": os.environ["TAG"], "version": os.environ["VERSION"], "bundle_url": os.environ["BUNDLE_URL"]}, indent=2) + "\n")'
+
 echo "Built release artifacts:"
 find "$DIST_DIR" -maxdepth 2 -type f -printf "  %p\n" | sort
 
@@ -65,11 +77,16 @@ if [[ "$PUBLISH" != "1" ]]; then
   exit 0
 fi
 
+if [[ -z "$GITHUB_REPOSITORY" || "$GITHUB_REPOSITORY" != */* ]]; then
+  echo "Set GITHUB_REPOSITORY as owner/repo, for example: GITHUB_REPOSITORY=abhinav054/mate" >&2
+  exit 1
+fi
+
 if command -v gh >/dev/null 2>&1; then
   if [[ -n "$NOTES_FILE" ]]; then
-    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" --title "$RELEASE_TITLE" --notes-file "$NOTES_FILE"
+    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_JSON" --title "$RELEASE_TITLE" --notes-file "$NOTES_FILE"
   else
-    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" --title "$RELEASE_TITLE" --generate-notes
+    gh release create "$TAG" "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_JSON" --title "$RELEASE_TITLE" --generate-notes
   fi
   echo "Published GitHub release $TAG."
   exit 0
@@ -77,16 +94,6 @@ fi
 
 if [[ -z "${GITHUB_TOKEN:-}" ]]; then
   echo "Set GITHUB_TOKEN, or install GitHub CLI and run: gh auth login" >&2
-  exit 1
-fi
-
-if [[ -z "$GITHUB_REPOSITORY" ]]; then
-  origin_url="$(git config --get remote.origin.url || true)"
-  GITHUB_REPOSITORY="$(printf '%s' "$origin_url" | sed -E 's#^git@github.com:##; s#^https://github.com/##; s#\.git$##')"
-fi
-
-if [[ -z "$GITHUB_REPOSITORY" || "$GITHUB_REPOSITORY" != */* ]]; then
-  echo "Set GITHUB_REPOSITORY as owner/repo, for example: GITHUB_REPOSITORY=abhinav054/mate" >&2
   exit 1
 fi
 
@@ -107,7 +114,7 @@ release_response="$(curl -fsSL \
 
 upload_url="$(printf '%s' "$release_response" | "$PYTHON_BIN" -c 'import json, sys; print(json.load(sys.stdin)["upload_url"].split("{", 1)[0])')"
 
-for asset in "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz"; do
+for asset in "$DIST_DIR"/python/* "$DIST_DIR/mate-$VERSION-bundle.tar.gz" "$LATEST_RELEASE_JSON"; do
   name="$(basename "$asset")"
   curl -fsSL \
     -X POST \
