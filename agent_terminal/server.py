@@ -8,6 +8,7 @@ from typing import Any
 from openai import OpenAI
 
 from . import config as mate_config
+from . import version as mate_version
 from . import tools
 
 
@@ -206,7 +207,7 @@ class AgentServer:
             ),
         }
         ui.banner(
-            "Mate",
+            f"Mate {mate_version()}",
             f"Workspace: {workspace_path}\nConfig: {config.mate_home}\nResources: {resource_root}\nModel: {model}\n\n"
             "Type a request, /help for commands, or exit/quit to close.",
         )
